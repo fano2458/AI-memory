@@ -27,11 +27,14 @@ def _parse(r: dict) -> Instance:
         Query(query_id=f"{r['uid']}:{d}", dimension=d, text=r["probing_queries"][f"{d}_query"])
         for d in DIMENSIONS
     ]
+    old_session, new_session = r["relevant_session_index"]
     return Instance(
         instance_id=r["uid"],
         sessions=sessions,
         queries=queries,
-        gold_sessions=sorted(r["relevant_session_index"]),
+        gold_sessions=[old_session, new_session],
+        old_session=old_session,
+        new_session=new_session,
         conflict_type=r["type"],
         old_observation=r["M_old"],
         new_observation=r["M_new"],

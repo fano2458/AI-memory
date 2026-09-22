@@ -32,6 +32,8 @@ class Instance:
     sessions: list[Session]
     queries: list[Query]
     gold_sessions: list[int]
+    old_session: int = -1
+    new_session: int = -1
     conflict_type: str = ""
     old_observation: str = ""
     new_observation: str = ""
