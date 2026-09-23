@@ -26,11 +26,8 @@ def main():
 
     def progress(done, total):
         print(f"\r  {done:,}/{total:,}", end="", flush=True)
-        if done % 20480 == 0:
-            emb.save()
 
     emb.add(texts, progress)
-    emb.save()
     print(f"\nsaved {len(emb.index):,} vectors to {emb.vec_path}")
 
 
