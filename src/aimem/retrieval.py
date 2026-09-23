@@ -41,6 +41,38 @@ class BM25:
         return ranked[:k]
 
 
+class Dense:
+    name = "dense"
+
+    def __init__(self, embedder):
+        self.embedder = embedder
+
+    def scores(self, texts: list[str], query: str):
+        mat = self.embedder.get(texts)
+        q = self.embedder.get([query])[0]
+        return mat @ q
+
+    def search(self, inst: Instance, query: str, k: int) -> list[int]:
+        texts = [t for _, t in units(inst)]
+        s = self.scores(texts, query)
+        return sorted(range(len(s)), key=lambda i: s[i], reverse=True)[:k]
+
+
+class Hybrid:
+    name = "hybrid"
+
+    def __init__(self, dense, rrf_k: int = 60):
+        self.dense = dense
+        self.rrf_k = rrf_k
+
+    def fuse(self, rankings: list[list[int]], k: int) -> list[int]:
+        score: dict[int, float] = {}
+        for ranking in rankings:
+            for rank, doc in enumerate(ranking):
+                score[doc] = score.get(doc, 0.0) + 1.0 / (self.rrf_k + rank + 1)
+        return sorted(score, key=score.get, reverse=True)[:k]
+
+
 def sessions_of(inst: Instance, doc_ids: list[int]) -> list[int]:
     u = units(inst)
     out = []
