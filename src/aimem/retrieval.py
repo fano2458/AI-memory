@@ -6,7 +6,7 @@ from .schema import Instance
 
 
 def units(inst: Instance) -> list[tuple[int, str]]:
-    return [(s.index, f"{t.role}: {t.content}") for s in inst.sessions for t in s.turns]
+    return [(s.index, t.content) for s in inst.sessions for t in s.turns]
 
 
 STOPWORDS = set(

@@ -1,5 +1,6 @@
 import hashlib
 import json
+import os
 import time
 from pathlib import Path
 
@@ -10,6 +11,17 @@ CACHE = Path("data/cache")
 
 def key(text):
     return hashlib.md5(text.encode()).hexdigest()
+
+
+def load_env(path=".env"):
+    p = Path(path)
+    if not p.exists():
+        return
+    for line in p.read_text().splitlines():
+        line = line.strip()
+        if line and not line.startswith("#") and "=" in line:
+            k, v = line.split("=", 1)
+            os.environ.setdefault(k.strip(), v.strip().strip("\"'"))
 
 
 class Embedder:
@@ -31,6 +43,7 @@ class Embedder:
         if self._client is None:
             from openai import OpenAI
 
+            load_env()
             self._client = OpenAI()
         return self._client
 

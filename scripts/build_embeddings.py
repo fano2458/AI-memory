@@ -12,6 +12,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--model", default="text-embedding-3-small")
     ap.add_argument("--limit", type=int, default=None)
+    ap.add_argument("--checkpoint", type=int, default=5120)
     args = ap.parse_args()
 
     xs = stale.load(limit=args.limit)
@@ -27,7 +28,7 @@ def main():
     def progress(done, total):
         print(f"\r  {done:,}/{total:,}", end="", flush=True)
 
-    emb.add(texts, progress)
+    emb.add(texts, progress, checkpoint=args.checkpoint)
     print(f"\nsaved {len(emb.index):,} vectors to {emb.vec_path}")
 
 
