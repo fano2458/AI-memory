@@ -7,10 +7,26 @@ from pathlib import Path
 import numpy as np
 
 CACHE = Path("data/cache")
+MAX_TOKENS = 8192
+_enc = None
 
 
 def key(text):
     return hashlib.md5(text.encode()).hexdigest()
+
+
+def prepare(text):
+    if not text.strip():
+        return " "
+    if len(text) <= MAX_TOKENS:
+        return text
+    global _enc
+    if _enc is None:
+        import tiktoken
+
+        _enc = tiktoken.get_encoding("cl100k_base")
+    ids = _enc.encode(text, disallowed_special=())
+    return text if len(ids) <= MAX_TOKENS else _enc.decode(ids[:MAX_TOKENS])
 
 
 def load_env(path=".env"):
@@ -64,7 +80,9 @@ class Embedder:
     def _call(self, chunk, tries=5):
         for attempt in range(tries):
             try:
-                resp = self.client.embeddings.create(model=self.model, input=chunk)
+                resp = self.client.embeddings.create(
+                    model=self.model, input=[prepare(t) for t in chunk]
+                )
                 return [d.embedding for d in resp.data]
             except Exception:
                 if attempt == tries - 1:

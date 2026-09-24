@@ -6,6 +6,7 @@ from typing import Any
 class Turn:
     role: str
     content: str
+    has_answer: bool = False
 
 
 @dataclass
@@ -38,6 +39,7 @@ class Instance:
     old_observation: str = ""
     new_observation: str = ""
     explanation: str = ""
+    answer: str = ""
 
     @property
     def n_turns(self) -> int:

@@ -4,18 +4,26 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from aimem import stale
+from aimem import longmemeval, stale
 from aimem.embed import Embedder
+
+
+def instances(benchmark, tier, limit):
+    if benchmark == "stale":
+        return stale.load(limit=limit)
+    return longmemeval.load(tier=tier, limit=limit)
 
 
 def main():
     ap = argparse.ArgumentParser()
+    ap.add_argument("--benchmark", default="stale", choices=["stale", "longmemeval"])
+    ap.add_argument("--tier", default="s")
     ap.add_argument("--model", default="text-embedding-3-small")
     ap.add_argument("--limit", type=int, default=None)
     ap.add_argument("--checkpoint", type=int, default=5120)
     args = ap.parse_args()
 
-    xs = stale.load(limit=args.limit)
+    xs = instances(args.benchmark, args.tier, args.limit)
     texts = [t.content for x in xs for s in x.sessions for t in s.turns]
 
     emb = Embedder(args.model)
