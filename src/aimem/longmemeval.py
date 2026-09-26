@@ -38,4 +38,5 @@ def _parse(r: dict) -> Instance:
         gold_sessions=gold_sessions,
         conflict_type=r["question_type"],
         answer=str(r["answer"]),
+        query_date=r.get("question_date", ""),
     )

@@ -1,0 +1,171 @@
+{
+  "reader": "gpt-5.4-mini",
+  "judge": "gpt-5.4-mini",
+  "n": 60,
+  "results": {
+    "gold": {
+      "cstar:1": {
+        "acc": 0.9,
+        "n": 20
+      },
+      "cstar:2": {
+        "acc": 0.871,
+        "n": 31
+      },
+      "cstar:3": {
+        "acc": 1.0,
+        "n": 6
+      },
+      "cstar:4": {
+        "acc": 1.0,
+        "n": 2
+      },
+      "cstar:5": {
+        "acc": 1.0,
+        "n": 1
+      },
+      "overall": {
+        "acc": 0.9,
+        "n": 60
+      },
+      "type:knowledge-update": {
+        "acc": 0.6923,
+        "n": 13
+      },
+      "type:multi-session": {
+        "acc": 1.0,
+        "n": 17
+      },
+      "type:single-session-assistant": {
+        "acc": 1.0,
+        "n": 5
+      },
+      "type:single-session-preference": {
+        "acc": 0.6667,
+        "n": 3
+      },
+      "type:single-session-user": {
+        "acc": 1.0,
+        "n": 10
+      },
+      "type:temporal-reasoning": {
+        "acc": 0.9167,
+        "n": 12
+      }
+    },
+    "oracle": {
+      "cstar:1": {
+        "acc": 0.95,
+        "n": 20
+      },
+      "cstar:2": {
+        "acc": 0.7097,
+        "n": 31
+      },
+      "cstar:3": {
+        "acc": 0.6667,
+        "n": 6
+      },
+      "cstar:4": {
+        "acc": 0.5,
+        "n": 2
+      },
+      "cstar:5": {
+        "acc": 1.0,
+        "n": 1
+      },
+      "overall": {
+        "acc": 0.7833,
+        "n": 60
+      },
+      "type:knowledge-update": {
+        "acc": 0.7692,
+        "n": 13
+      },
+      "type:multi-session": {
+        "acc": 0.7059,
+        "n": 17
+      },
+      "type:single-session-assistant": {
+        "acc": 1.0,
+        "n": 5
+      },
+      "type:single-session-preference": {
+        "acc": 1.0,
+        "n": 3
+      },
+      "type:single-session-user": {
+        "acc": 1.0,
+        "n": 10
+      },
+      "type:temporal-reasoning": {
+        "acc": 0.5833,
+        "n": 12
+      }
+    },
+    "dense8": {
+      "cstar:1": {
+        "acc": 0.95,
+        "n": 20
+      },
+      "cstar:2": {
+        "acc": 0.6129,
+        "n": 31
+      },
+      "cstar:3": {
+        "acc": 0.5,
+        "n": 6
+      },
+      "cstar:4": {
+        "acc": 0.0,
+        "n": 2
+      },
+      "cstar:5": {
+        "acc": 1.0,
+        "n": 1
+      },
+      "overall": {
+        "acc": 0.7,
+        "n": 60
+      },
+      "type:knowledge-update": {
+        "acc": 0.5385,
+        "n": 13
+      },
+      "type:multi-session": {
+        "acc": 0.4118,
+        "n": 17
+      },
+      "type:single-session-assistant": {
+        "acc": 1.0,
+        "n": 5
+      },
+      "type:single-session-preference": {
+        "acc": 0.6667,
+        "n": 3
+      },
+      "type:single-session-user": {
+        "acc": 1.0,
+        "n": 10
+      },
+      "type:temporal-reasoning": {
+        "acc": 0.9167,
+        "n": 12
+      }
+    }
+  },
+  "reader_tokens": {
+    "gold": {
+      "in": 38080,
+      "out": 1448
+    },
+    "oracle": {
+      "in": 338777,
+      "out": 1998
+    },
+    "dense8": {
+      "in": 109270,
+      "out": 1853
+    }
+  }
+}

@@ -40,6 +40,7 @@ class Instance:
     new_observation: str = ""
     explanation: str = ""
     answer: str = ""
+    query_date: str = ""
 
     @property
     def n_turns(self) -> int:
