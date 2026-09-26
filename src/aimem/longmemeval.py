@@ -37,5 +37,5 @@ def _parse(r: dict) -> Instance:
         queries=[Query(r["question_id"], r["question_type"], r["question"])],
         gold_sessions=gold_sessions,
         conflict_type=r["question_type"],
-        answer=r["answer"],
+        answer=str(r["answer"]),
     )
