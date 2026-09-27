@@ -57,60 +57,6 @@
         "n": 133
       }
     },
-    "oracle": {
-      "cstar:1": {
-        "acc": 0.9375,
-        "n": 176
-      },
-      "cstar:2": {
-        "acc": 0.708,
-        "n": 250
-      },
-      "cstar:3": {
-        "acc": 0.4634,
-        "n": 41
-      },
-      "cstar:4": {
-        "acc": 0.5789,
-        "n": 19
-      },
-      "cstar:5": {
-        "acc": 0.3636,
-        "n": 11
-      },
-      "cstar:6": {
-        "acc": 0.3333,
-        "n": 3
-      },
-      "overall": {
-        "acc": 0.754,
-        "n": 500
-      },
-      "type:knowledge-update": {
-        "acc": 0.8846,
-        "n": 78
-      },
-      "type:multi-session": {
-        "acc": 0.6165,
-        "n": 133
-      },
-      "type:single-session-assistant": {
-        "acc": 0.9821,
-        "n": 56
-      },
-      "type:single-session-preference": {
-        "acc": 0.8333,
-        "n": 30
-      },
-      "type:single-session-user": {
-        "acc": 0.9571,
-        "n": 70
-      },
-      "type:temporal-reasoning": {
-        "acc": 0.594,
-        "n": 133
-      }
-    },
     "dense4": {
       "cstar:1": {
         "acc": 0.8409,
@@ -135,6 +81,14 @@
       "cstar:6": {
         "acc": 0.6667,
         "n": 3
+      },
+      "evidence:complete": {
+        "acc": 0.8409,
+        "n": 264
+      },
+      "evidence:missing": {
+        "acc": 0.386,
+        "n": 215
       },
       "overall": {
         "acc": 0.642,
@@ -190,6 +144,14 @@
         "acc": 0.0,
         "n": 3
       },
+      "evidence:complete": {
+        "acc": 0.8224,
+        "n": 366
+      },
+      "evidence:missing": {
+        "acc": 0.354,
+        "n": 113
+      },
       "overall": {
         "acc": 0.714,
         "n": 500
@@ -244,6 +206,14 @@
         "acc": 0.3333,
         "n": 3
       },
+      "evidence:complete": {
+        "acc": 0.7662,
+        "n": 432
+      },
+      "evidence:missing": {
+        "acc": 0.2766,
+        "n": 47
+      },
       "overall": {
         "acc": 0.722,
         "n": 500
@@ -278,10 +248,6 @@
     "gold": {
       "in": 245347,
       "out": 13500
-    },
-    "oracle": {
-      "in": 2860638,
-      "out": 15552
     },
     "dense4": {
       "in": 427928,

@@ -48,7 +48,11 @@ def dense_evidence(x, emb, k):
     texts = [t for _, t in u]
     scores = emb.get(texts) @ emb.get([x.queries[0].text])[0]
     top = sorted(range(len(u)), key=lambda i: scores[i], reverse=True)[:k]
-    return [(x.sessions[u[i][0]].timestamp, texts[i]) for i in sorted(top)]
+    return [(x.sessions[u[i][0]].timestamp, texts[i]) for i in sorted(top)], set(top)
+
+
+def gold_turn_ids(x):
+    return {i for i, t in enumerate(t for s in x.sessions for t in s.turns) if t.has_answer}
 
 
 def build_prompt(x, evidence):
@@ -80,13 +84,17 @@ def main():
     cost = collections.defaultdict(lambda: [0, 0])
 
     for n, x in enumerate(xs, 1):
+        gold_ids = gold_turn_ids(x)
         for cond in conditions:
+            complete = None
             if cond == "gold":
                 ev = gold_evidence(x)
             elif cond == "oracle":
                 ev = oracle_evidence(x)
             else:
-                ev = dense_evidence(x, emb, int(cond[5:]))
+                ev, got = dense_evidence(x, emb, int(cond[5:]))
+                if gold_ids:
+                    complete = gold_ids <= got
             out = reader.ask(READ_SYS, build_prompt(x, ev))
             verdict = judge.ask(
                 JUDGE_SYS,
@@ -97,6 +105,8 @@ def main():
             acc[cond]["overall"].append(ok)
             acc[cond][f"type:{x.conflict_type}"].append(ok)
             acc[cond][f"cstar:{len(x.gold_sessions)}"].append(ok)
+            if complete is not None:
+                acc[cond]["evidence:complete" if complete else "evidence:missing"].append(ok)
             cost[cond][0] += out["in_tokens"]
             cost[cond][1] += out["out_tokens"]
         if n % 25 == 0:
@@ -130,7 +140,7 @@ def main():
         for c in conditions:
             r = rows[c].get(g)
             line += f"{r['acc']:>12.3f}" if r else f"{'-':>12s}"
-        n = rows[conditions[0]].get(g, {}).get("n", "")
+        n = next((rows[c][g]["n"] for c in conditions if g in rows[c]), "")
         print(line + f"   n={n}")
     print()
     for c in conditions:
