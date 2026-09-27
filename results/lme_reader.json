@@ -1,171 +1,299 @@
 {
   "reader": "gpt-5.4-mini",
   "judge": "gpt-5.4-mini",
-  "n": 60,
+  "n": 500,
   "results": {
     "gold": {
       "cstar:1": {
-        "acc": 0.9,
-        "n": 20
+        "acc": 0.9091,
+        "n": 176
       },
       "cstar:2": {
-        "acc": 0.871,
-        "n": 31
+        "acc": 0.82,
+        "n": 250
       },
       "cstar:3": {
-        "acc": 1.0,
-        "n": 6
+        "acc": 0.7805,
+        "n": 41
       },
       "cstar:4": {
-        "acc": 1.0,
-        "n": 2
+        "acc": 0.8947,
+        "n": 19
       },
       "cstar:5": {
+        "acc": 0.8182,
+        "n": 11
+      },
+      "cstar:6": {
         "acc": 1.0,
-        "n": 1
+        "n": 3
       },
       "overall": {
-        "acc": 0.9,
-        "n": 60
+        "acc": 0.852,
+        "n": 500
       },
       "type:knowledge-update": {
-        "acc": 0.6923,
-        "n": 13
+        "acc": 0.8846,
+        "n": 78
       },
       "type:multi-session": {
-        "acc": 1.0,
-        "n": 17
+        "acc": 0.8346,
+        "n": 133
       },
       "type:single-session-assistant": {
-        "acc": 1.0,
-        "n": 5
+        "acc": 0.9643,
+        "n": 56
       },
       "type:single-session-preference": {
         "acc": 0.6667,
-        "n": 3
+        "n": 30
       },
       "type:single-session-user": {
-        "acc": 1.0,
-        "n": 10
+        "acc": 0.9714,
+        "n": 70
       },
       "type:temporal-reasoning": {
-        "acc": 0.9167,
-        "n": 12
+        "acc": 0.782,
+        "n": 133
       }
     },
     "oracle": {
       "cstar:1": {
-        "acc": 0.95,
-        "n": 20
+        "acc": 0.9375,
+        "n": 176
       },
       "cstar:2": {
-        "acc": 0.7097,
-        "n": 31
+        "acc": 0.708,
+        "n": 250
       },
       "cstar:3": {
-        "acc": 0.6667,
-        "n": 6
+        "acc": 0.4634,
+        "n": 41
       },
       "cstar:4": {
-        "acc": 0.5,
-        "n": 2
+        "acc": 0.5789,
+        "n": 19
       },
       "cstar:5": {
-        "acc": 1.0,
-        "n": 1
+        "acc": 0.3636,
+        "n": 11
       },
-      "overall": {
-        "acc": 0.7833,
-        "n": 60
-      },
-      "type:knowledge-update": {
-        "acc": 0.7692,
-        "n": 13
-      },
-      "type:multi-session": {
-        "acc": 0.7059,
-        "n": 17
-      },
-      "type:single-session-assistant": {
-        "acc": 1.0,
-        "n": 5
-      },
-      "type:single-session-preference": {
-        "acc": 1.0,
+      "cstar:6": {
+        "acc": 0.3333,
         "n": 3
       },
+      "overall": {
+        "acc": 0.754,
+        "n": 500
+      },
+      "type:knowledge-update": {
+        "acc": 0.8846,
+        "n": 78
+      },
+      "type:multi-session": {
+        "acc": 0.6165,
+        "n": 133
+      },
+      "type:single-session-assistant": {
+        "acc": 0.9821,
+        "n": 56
+      },
+      "type:single-session-preference": {
+        "acc": 0.8333,
+        "n": 30
+      },
       "type:single-session-user": {
-        "acc": 1.0,
-        "n": 10
+        "acc": 0.9571,
+        "n": 70
       },
       "type:temporal-reasoning": {
-        "acc": 0.5833,
-        "n": 12
+        "acc": 0.594,
+        "n": 133
+      }
+    },
+    "dense4": {
+      "cstar:1": {
+        "acc": 0.8409,
+        "n": 176
+      },
+      "cstar:2": {
+        "acc": 0.584,
+        "n": 250
+      },
+      "cstar:3": {
+        "acc": 0.4634,
+        "n": 41
+      },
+      "cstar:4": {
+        "acc": 0.2105,
+        "n": 19
+      },
+      "cstar:5": {
+        "acc": 0.1818,
+        "n": 11
+      },
+      "cstar:6": {
+        "acc": 0.6667,
+        "n": 3
+      },
+      "overall": {
+        "acc": 0.642,
+        "n": 500
+      },
+      "type:knowledge-update": {
+        "acc": 0.7179,
+        "n": 78
+      },
+      "type:multi-session": {
+        "acc": 0.406,
+        "n": 133
+      },
+      "type:single-session-assistant": {
+        "acc": 0.8929,
+        "n": 56
+      },
+      "type:single-session-preference": {
+        "acc": 0.6,
+        "n": 30
+      },
+      "type:single-session-user": {
+        "acc": 0.9286,
+        "n": 70
+      },
+      "type:temporal-reasoning": {
+        "acc": 0.5865,
+        "n": 133
       }
     },
     "dense8": {
       "cstar:1": {
-        "acc": 0.95,
-        "n": 20
+        "acc": 0.9148,
+        "n": 176
       },
       "cstar:2": {
-        "acc": 0.6129,
-        "n": 31
+        "acc": 0.68,
+        "n": 250
       },
       "cstar:3": {
-        "acc": 0.5,
-        "n": 6
+        "acc": 0.439,
+        "n": 41
       },
       "cstar:4": {
-        "acc": 0.0,
-        "n": 2
+        "acc": 0.2105,
+        "n": 19
       },
       "cstar:5": {
-        "acc": 1.0,
-        "n": 1
+        "acc": 0.3636,
+        "n": 11
+      },
+      "cstar:6": {
+        "acc": 0.0,
+        "n": 3
       },
       "overall": {
-        "acc": 0.7,
-        "n": 60
+        "acc": 0.714,
+        "n": 500
       },
       "type:knowledge-update": {
-        "acc": 0.5385,
-        "n": 13
+        "acc": 0.8077,
+        "n": 78
       },
       "type:multi-session": {
-        "acc": 0.4118,
-        "n": 17
+        "acc": 0.4962,
+        "n": 133
       },
       "type:single-session-assistant": {
-        "acc": 1.0,
-        "n": 5
+        "acc": 0.9643,
+        "n": 56
+      },
+      "type:single-session-preference": {
+        "acc": 0.7333,
+        "n": 30
+      },
+      "type:single-session-user": {
+        "acc": 0.9714,
+        "n": 70
+      },
+      "type:temporal-reasoning": {
+        "acc": 0.6316,
+        "n": 133
+      }
+    },
+    "dense16": {
+      "cstar:1": {
+        "acc": 0.8807,
+        "n": 176
+      },
+      "cstar:2": {
+        "acc": 0.696,
+        "n": 250
+      },
+      "cstar:3": {
+        "acc": 0.4878,
+        "n": 41
+      },
+      "cstar:4": {
+        "acc": 0.4737,
+        "n": 19
+      },
+      "cstar:5": {
+        "acc": 0.1818,
+        "n": 11
+      },
+      "cstar:6": {
+        "acc": 0.3333,
+        "n": 3
+      },
+      "overall": {
+        "acc": 0.722,
+        "n": 500
+      },
+      "type:knowledge-update": {
+        "acc": 0.8462,
+        "n": 78
+      },
+      "type:multi-session": {
+        "acc": 0.594,
+        "n": 133
+      },
+      "type:single-session-assistant": {
+        "acc": 0.9821,
+        "n": 56
       },
       "type:single-session-preference": {
         "acc": 0.6667,
-        "n": 3
+        "n": 30
       },
       "type:single-session-user": {
-        "acc": 1.0,
-        "n": 10
+        "acc": 0.9571,
+        "n": 70
       },
       "type:temporal-reasoning": {
-        "acc": 0.9167,
-        "n": 12
+        "acc": 0.5564,
+        "n": 133
       }
     }
   },
   "reader_tokens": {
     "gold": {
-      "in": 38080,
-      "out": 1448
+      "in": 245347,
+      "out": 13500
     },
     "oracle": {
-      "in": 338777,
-      "out": 1998
+      "in": 2860638,
+      "out": 15552
+    },
+    "dense4": {
+      "in": 427928,
+      "out": 14374
     },
     "dense8": {
-      "in": 109270,
-      "out": 1853
+      "in": 876371,
+      "out": 15247
+    },
+    "dense16": {
+      "in": 1764187,
+      "out": 16421
     }
   }
 }
