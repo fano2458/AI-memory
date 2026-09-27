@@ -20,40 +20,52 @@ SIZES = [500, 1000, 2500, 5000, 10000, 25000, 50000, 100000, 246750]
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--questions", type=int, default=150)
+    ap.add_argument("--tier", default="s")
     ap.add_argument("--seed", type=int, default=0)
+    ap.add_argument("--sizes", default="")
     ap.add_argument("--out", default="results/lme_scaling.json")
     args = ap.parse_args()
 
-    xs = lme.load("s")
+    global SIZES
+    if args.sizes:
+        SIZES = [int(v) for v in args.sizes.split(",")]
+
+    xs = lme.load(args.tier)
     emb = Embedder()
 
-    pool_text, owner, is_gold = [], [], []
+    pool_text = []
+    seen = {}
+    by_owner = collections.defaultdict(list)
+    gold_by_owner = collections.defaultdict(set)
     for x in xs:
         for s in x.sessions:
             for t in s.turns:
-                pool_text.append(t.content)
-                owner.append(x.instance_id)
-                is_gold.append(t.has_answer)
-    print(f"pool: {len(pool_text):,} turns")
+                i = seen.get(t.content)
+                if i is None:
+                    i = seen[t.content] = len(pool_text)
+                    pool_text.append(t.content)
+                by_owner[x.instance_id].append(i)
+                if t.has_answer:
+                    gold_by_owner[x.instance_id].add(i)
+    print(f"pool: {len(pool_text):,} unique turns (tier {args.tier})")
 
     mat = emb.get(pool_text)
-    by_owner = collections.defaultdict(list)
-    for i, o in enumerate(owner):
-        by_owner[o].append(i)
 
     rng = random.Random(args.seed)
-    sample = [x for x in xs if any(is_gold[i] for i in by_owner[x.instance_id])]
+    sample = [x for x in xs if gold_by_owner[x.instance_id]]
     rng.shuffle(sample)
     sample = sample[: args.questions]
 
-    owner_arr = np.array(owner)
     nprng = np.random.default_rng(args.seed)
+    all_idx = np.arange(len(pool_text))
 
     res = collections.defaultdict(lambda: collections.defaultdict(list))
     for n, x in enumerate(sample, 1):
-        own = np.array(by_owner[x.instance_id])
-        gold = {i for i in by_owner[x.instance_id] if is_gold[i]}
-        others = np.flatnonzero(owner_arr != x.instance_id)
+        own = np.array(sorted(set(by_owner[x.instance_id])))
+        gold = gold_by_owner[x.instance_id]
+        mask = np.ones(len(pool_text), dtype=bool)
+        mask[own] = False
+        others = all_idx[mask]
         scores = mat @ emb.get([x.queries[0].text])[0]
 
         for size in SIZES:
