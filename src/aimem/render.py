@@ -69,6 +69,42 @@ BY_RELATION = {
     },
 }
 
+IMPLICIT = {
+    "location": {
+        "Seattle": ["the drizzle here never really stops", "my ferry commute across the sound"],
+        "Austin": ["the heat down here in the hill country", "breakfast tacos on every corner"],
+        "Almaty": ["the mountains sit right at the edge of the city here"],
+        "Astana": ["the wind on the steppe cuts straight through you here"],
+        "Lisbon": ["the tiled facades and the tram grinding up the hill outside"],
+        "Toronto": ["scraping ice off the car before the commute again"],
+        "Osaka": ["the konbini downstairs is open all night here"],
+    },
+    "commute": {
+        "bicycle": ["my legs are wrecked after the ride in each morning"],
+        "subway": ["the tunnel signal drops halfway through my ride in"],
+        "car": ["parking at the office is the worst part of my day"],
+        "walking": ["twenty minutes door to door on foot"],
+        "tram": ["the overhead wires rattle right past my stop"],
+    },
+    "deploy_target": {
+        "production": ["any mistake now is visible to every customer"],
+        "staging": ["nobody outside the team will see it if it breaks"],
+        "the test cluster": ["the nodes get wiped every night anyway"],
+    },
+}
+
+
+def render_implicit(event, rng=None):
+    cues = IMPLICIT.get(event.relation, {}).get(event.value)
+    if not cues:
+        return None
+    rng = rng or random.Random(event.event_id)
+    cue = rng.choice(cues)
+    if event.entity == "user":
+        return f"Honestly, {cue}."
+    return f"{event.entity} mentioned {cue}."
+
+
 NOISE = [
     "Any tips for keeping houseplants alive in winter?",
     "I've been trying to cut down on coffee lately.",
@@ -85,12 +121,12 @@ def render(event, rng=None):
     options = by_rel.get(event.op) or GENERIC.get(event.op) or GENERIC[SET]
     rel = event.relation.replace("_", " ")
     first = event.entity == "user"
-    poss = "My" if first else f"{event.entity}'s"
+    poss = "my" if first else f"{event.entity}'s"
     subj = "I'm" if first else f"{event.entity} is"
     text = rng.choice(options).format(rel=rel, val=event.value, poss=poss, subj=subj)
     if not first and poss not in text and event.entity not in text:
         text = f"{event.entity}: {text}"
-    return text
+    return text[:1].upper() + text[1:]
 
 
 def noise_turn(rng):
