@@ -59,6 +59,7 @@ def build_prompt(x, evidence):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--model", default="gpt-5.4-mini")
+    ap.add_argument("--max-tokens", type=int, default=512)
     ap.add_argument("--judge", default="gpt-5.4-mini")
     ap.add_argument("--limit", type=int, default=None)
     ap.add_argument("--seed", type=int, default=0)
@@ -71,8 +72,8 @@ def main():
         random.Random(args.seed).shuffle(xs)
         xs = xs[: args.limit]
     emb = Embedder()
-    reader = Reader(args.model)
-    judge = Reader(args.judge, max_tokens=8)
+    reader = Reader(args.model, max_tokens=args.max_tokens)
+    judge = Reader(args.judge, max_tokens=256)
 
     conditions = args.conditions.split(",")
     acc = collections.defaultdict(lambda: collections.defaultdict(list))
@@ -92,7 +93,7 @@ def main():
                 f"Question: {x.queries[0].text}\nReference answer: {x.answer}\n"
                 f"Model answer: {out['text']}",
             )
-            ok = verdict["text"].strip().lower().startswith("yes")
+            ok = "yes" in verdict["text"].strip().lower()[-8:]
             acc[cond]["overall"].append(ok)
             acc[cond][f"type:{x.conflict_type}"].append(ok)
             acc[cond][f"cstar:{len(x.gold_sessions)}"].append(ok)

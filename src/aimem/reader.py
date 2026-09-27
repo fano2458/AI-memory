@@ -6,6 +6,13 @@ from pathlib import Path
 from .embed import CACHE, load_env
 
 
+def _fatal(exc):
+    status = getattr(exc, "status_code", None)
+    if status == 400:
+        return True
+    return "insufficient_quota" in str(exc) or "credit_balance" in str(exc)
+
+
 def key(model, system, user):
     return hashlib.md5(f"{model}\x00{system}\x00{user}".encode()).hexdigest()
 
@@ -62,7 +69,7 @@ class Reader:
                     "out_tokens": resp.usage.completion_tokens,
                     "ms": round((time.time() - t0) * 1000),
                 }
-            except Exception:
-                if attempt == tries - 1:
+            except Exception as exc:
+                if attempt == tries - 1 or _fatal(exc):
                     raise
                 time.sleep(2**attempt)
