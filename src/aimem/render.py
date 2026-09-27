@@ -4,49 +4,49 @@ from .world import CANCEL, REFINE, REVERT, SET, SUPERSEDE, TEMPORARY, UNCERTAIN
 
 GENERIC = {
     SET: [
-        "My {rel} is {val}.",
+        "{poss} {rel} is {val}.",
         "Just so you know, {rel} is {val} for me.",
-        "I should mention my {rel} is {val}.",
+        "Note: {poss} {rel} is {val}.",
     ],
     SUPERSEDE: [
-        "My {rel} is {val} from here on.",
-        "Going forward my {rel} is {val}.",
-        "Make it {val} for my {rel}.",
+        "{poss} {rel} is {val} from here on.",
+        "Going forward {poss} {rel} is {val}.",
+        "Make it {val} for {poss} {rel}.",
     ],
     TEMPORARY: [
-        "For a short stretch my {rel} is {val}.",
+        "For a short stretch {poss} {rel} is {val}.",
         "Briefly, {rel} is {val}, then back to normal.",
     ],
     REVERT: [
-        "Back to {val} for my {rel}.",
-        "My {rel} is {val} again.",
+        "Back to {val} for {poss} {rel}.",
+        "{poss} {rel} is {val} again.",
     ],
     REFINE: [
-        "To be precise, my {rel} is {val}.",
+        "To be precise, {poss} {rel} is {val}.",
         "More specifically, {val}.",
     ],
     UNCERTAIN: [
-        "I might make my {rel} {val}, still deciding.",
+        "{subj} maybe making {poss} {rel} {val}, still deciding.",
         "There is a chance {rel} becomes {val}, nothing settled.",
-        "I am weighing up {val} for my {rel}.",
+        "{subj} weighing up {val} for {poss} {rel}.",
     ],
     CANCEL: [
-        "My {rel} is not settled any more, disregard what I said.",
-        "Scrap the {rel} I gave you.",
+        "{poss} {rel} is not settled any more, disregard what I said.",
+        "Scrap the {rel} given earlier.",
     ],
 }
 
 BY_RELATION = {
     "location": {
-        SET: ["I'm based in {val}.", "I live in {val} these days."],
-        SUPERSEDE: ["I've moved to {val}.", "I just settled into {val}."],
-        TEMPORARY: ["I'm in {val} for a few days.", "Staying in {val} briefly."],
-        REVERT: ["I'm back in {val}.", "Moved back to {val}."],
-        UNCERTAIN: ["I might move to {val}.", "Thinking about relocating to {val}."],
+        SET: ["{subj} based in {val}.", "{subj} living in {val} these days."],
+        SUPERSEDE: ["{subj} moved to {val}.", "{subj} settled into {val}."],
+        TEMPORARY: ["{subj} in {val} for a few days.", "{subj} staying in {val} briefly."],
+        REVERT: ["{subj} back in {val}.", "{subj} moved back to {val}."],
+        UNCERTAIN: ["{subj} maybe moving to {val}.", "{subj} possibly relocating to {val}."],
     },
     "job_title": {
-        SET: ["I work as a {val}.", "My role is {val}."],
-        SUPERSEDE: ["I've taken a {val} role.", "I moved into a {val} position."],
+        SET: ["{subj} working as a {val}.", "{poss} role is {val}."],
+        SUPERSEDE: ["{subj} taken a {val} role.", "{subj} moved into a {val} position."],
         UNCERTAIN: ["There's talk of me becoming a {val}.", "I may move to a {val} role."],
     },
     "deadline": {
@@ -63,9 +63,9 @@ BY_RELATION = {
         UNCERTAIN: ["We might upgrade the API to {val}."],
     },
     "destination": {
-        SET: ["I'm heading to {val}.", "The trip is to {val}."],
-        SUPERSEDE: ["I changed the trip to {val}.", "I rebooked for {val}."],
-        UNCERTAIN: ["I might go to {val} instead."],
+        SET: ["{subj} heading to {val}.", "The trip is to {val}."],
+        SUPERSEDE: ["{subj} changed the trip to {val}.", "{subj} rebooked for {val}."],
+        UNCERTAIN: ["{subj} maybe going to {val} instead."],
     },
 }
 
@@ -84,7 +84,13 @@ def render(event, rng=None):
     by_rel = BY_RELATION.get(event.relation, {})
     options = by_rel.get(event.op) or GENERIC.get(event.op) or GENERIC[SET]
     rel = event.relation.replace("_", " ")
-    return rng.choice(options).format(rel=rel, val=event.value)
+    first = event.entity == "user"
+    poss = "My" if first else f"{event.entity}'s"
+    subj = "I'm" if first else f"{event.entity} is"
+    text = rng.choice(options).format(rel=rel, val=event.value, poss=poss, subj=subj)
+    if not first and poss not in text and event.entity not in text:
+        text = f"{event.entity}: {text}"
+    return text
 
 
 def noise_turn(rng):
