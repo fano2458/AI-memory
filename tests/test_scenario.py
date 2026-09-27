@@ -48,3 +48,20 @@ def test_distractors_do_not_touch_target_slot():
     target = s.queries[0].slot
     ids = {e.event_id for e in s.events if (e.entity, e.relation) == target}
     assert set(s.queries[0].gold_historical) <= ids
+
+
+def test_target_events_are_interleaved():
+    interleaved = 0
+    for seed in range(20):
+        s = generate(seed=seed, chain_len=4, n_distractor_slots=8, ops=[SUPERSEDE])
+        target = s.queries[0].slot
+        flags = [(e.entity, e.relation) == target for e in s.events]
+        first, last = flags.index(True), len(flags) - 1 - flags[::-1].index(True)
+        interleaved += any(not f for f in flags[first:last])
+    assert interleaved >= 18
+
+
+def test_events_are_time_ordered():
+    s = generate(seed=1, chain_len=4, n_distractor_slots=6, ops=[SUPERSEDE])
+    times = [e.time for e in s.events]
+    assert times == sorted(times)

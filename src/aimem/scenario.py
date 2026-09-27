@@ -74,35 +74,41 @@ def generate(
     targets = []
 
     chosen = _slots(rng, n_target_slots + n_distractor_slots)
+    pending = []
     for i, (_domain, relation, values) in enumerate(chosen):
         entity = entities[0] if i < n_target_slots else rng.choice(entities)
-        slot = (entity, relation)
         is_target = i < n_target_slots
         vals = rng.sample(values, min(chain_len, len(values)))
         length = chain_len if is_target else 1
-
+        steps = []
         for j in range(length):
-            t += rng.randint(1, 4)
-            eid += 1
-            if j == 0:
-                op = SET
-            else:
-                op = rng.choice(ops)
+            op = SET if j == 0 else rng.choice(ops)
             value = vals[j % len(vals)] if op != REVERT else vals[0]
-            ev = Event(
-                eid,
-                t,
-                entity,
-                relation,
-                value,
-                op,
-                until=t + rng.randint(1, 3) if op == TEMPORARY else -1,
-                confirmed=op != UNCERTAIN,
-            )
-            events.append(ev)
-            world.apply(ev)
+            steps.append((entity, relation, value, op))
+        pending.append(steps)
         if is_target:
-            targets.append(slot)
+            targets.append((entity, relation))
+
+    order = [i for i, steps in enumerate(pending) for _ in steps]
+    rng.shuffle(order)
+    cursor = [0] * len(pending)
+    for i in order:
+        entity, relation, value, op = pending[i][cursor[i]]
+        cursor[i] += 1
+        t += rng.randint(1, 4)
+        eid += 1
+        ev = Event(
+            eid,
+            t,
+            entity,
+            relation,
+            value,
+            op,
+            until=t + rng.randint(1, 3) if op == TEMPORARY else -1,
+            confirmed=op != UNCERTAIN,
+        )
+        events.append(ev)
+        world.apply(ev)
 
     now = t + 1
     queries = [_query(world, slot, now) for slot in targets]
