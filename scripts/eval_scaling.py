@@ -13,7 +13,7 @@ import numpy as np
 from aimem import longmemeval as lme
 from aimem.embed import Embedder
 
-KS = [4, 8, 16, 32]
+KS = [4, 8, 16, 32, 100, 300, 1000, 3000, 10000]
 SIZES = [500, 1000, 2500, 5000, 10000, 25000, 50000, 100000, 246750]
 
 
@@ -94,13 +94,12 @@ def main():
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps({"n_questions": len(sample), "results": rows}, indent=2))
 
-    print(f"\n{'store turns':>12}" + "".join(f"  rec@{k:<3d} all@{k:<3d}" for k in KS))
-    print("-" * (12 + 16 * len(KS)))
+    print(f"\n{'store turns':>12}" + "".join(f"{'all@'+str(k):>11}" for k in KS))
+    print("-" * (12 + 11 * len(KS)))
     for size in SIZES:
         line = f"{size:>12,}"
         for k in KS:
-            c = rows[str(size)][f"k={k}"]
-            line += f"   {c['recall']:.3f}   {c['complete']:.3f}"
+            line += f"   {rows[str(size)][f'k={k}']['complete']:>8.3f}"
         print(line)
     print(f"\nwrote {out}")
 

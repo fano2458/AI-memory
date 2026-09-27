@@ -17,6 +17,26 @@
       "k=32": {
         "recall": 0.9676,
         "complete": 0.9333
+      },
+      "k=100": {
+        "recall": 1.0,
+        "complete": 1.0
+      },
+      "k=300": {
+        "recall": 1.0,
+        "complete": 1.0
+      },
+      "k=1000": {
+        "recall": 1.0,
+        "complete": 1.0
+      },
+      "k=3000": {
+        "recall": 1.0,
+        "complete": 1.0
+      },
+      "k=10000": {
+        "recall": 1.0,
+        "complete": 1.0
       }
     },
     "1000": {
@@ -35,6 +55,26 @@
       "k=32": {
         "recall": 0.9542,
         "complete": 0.92
+      },
+      "k=100": {
+        "recall": 0.9878,
+        "complete": 0.98
+      },
+      "k=300": {
+        "recall": 1.0,
+        "complete": 1.0
+      },
+      "k=1000": {
+        "recall": 1.0,
+        "complete": 1.0
+      },
+      "k=3000": {
+        "recall": 1.0,
+        "complete": 1.0
+      },
+      "k=10000": {
+        "recall": 1.0,
+        "complete": 1.0
       }
     },
     "2500": {
@@ -53,6 +93,26 @@
       "k=32": {
         "recall": 0.9231,
         "complete": 0.8667
+      },
+      "k=100": {
+        "recall": 0.9622,
+        "complete": 0.9467
+      },
+      "k=300": {
+        "recall": 0.9878,
+        "complete": 0.98
+      },
+      "k=1000": {
+        "recall": 1.0,
+        "complete": 1.0
+      },
+      "k=3000": {
+        "recall": 1.0,
+        "complete": 1.0
+      },
+      "k=10000": {
+        "recall": 1.0,
+        "complete": 1.0
       }
     },
     "5000": {
@@ -71,6 +131,26 @@
       "k=32": {
         "recall": 0.8843,
         "complete": 0.8267
+      },
+      "k=100": {
+        "recall": 0.9606,
+        "complete": 0.94
+      },
+      "k=300": {
+        "recall": 0.9728,
+        "complete": 0.96
+      },
+      "k=1000": {
+        "recall": 1.0,
+        "complete": 1.0
+      },
+      "k=3000": {
+        "recall": 1.0,
+        "complete": 1.0
+      },
+      "k=10000": {
+        "recall": 1.0,
+        "complete": 1.0
       }
     },
     "10000": {
@@ -89,6 +169,26 @@
       "k=32": {
         "recall": 0.8471,
         "complete": 0.7733
+      },
+      "k=100": {
+        "recall": 0.9178,
+        "complete": 0.8733
+      },
+      "k=300": {
+        "recall": 0.9622,
+        "complete": 0.9467
+      },
+      "k=1000": {
+        "recall": 0.9844,
+        "complete": 0.9733
+      },
+      "k=3000": {
+        "recall": 1.0,
+        "complete": 1.0
+      },
+      "k=10000": {
+        "recall": 1.0,
+        "complete": 1.0
       }
     },
     "25000": {
@@ -107,6 +207,26 @@
       "k=32": {
         "recall": 0.7566,
         "complete": 0.6667
+      },
+      "k=100": {
+        "recall": 0.871,
+        "complete": 0.8067
+      },
+      "k=300": {
+        "recall": 0.9294,
+        "complete": 0.8933
+      },
+      "k=1000": {
+        "recall": 0.9622,
+        "complete": 0.9467
+      },
+      "k=3000": {
+        "recall": 0.9878,
+        "complete": 0.98
+      },
+      "k=10000": {
+        "recall": 1.0,
+        "complete": 1.0
       }
     },
     "50000": {
@@ -125,6 +245,26 @@
       "k=32": {
         "recall": 0.6929,
         "complete": 0.6
+      },
+      "k=100": {
+        "recall": 0.8138,
+        "complete": 0.7333
+      },
+      "k=300": {
+        "recall": 0.8987,
+        "complete": 0.84
+      },
+      "k=1000": {
+        "recall": 0.9606,
+        "complete": 0.94
+      },
+      "k=3000": {
+        "recall": 0.9711,
+        "complete": 0.96
+      },
+      "k=10000": {
+        "recall": 1.0,
+        "complete": 1.0
       }
     },
     "100000": {
@@ -143,6 +283,26 @@
       "k=32": {
         "recall": 0.6311,
         "complete": 0.5267
+      },
+      "k=100": {
+        "recall": 0.7363,
+        "complete": 0.6467
+      },
+      "k=300": {
+        "recall": 0.8427,
+        "complete": 0.7733
+      },
+      "k=1000": {
+        "recall": 0.9178,
+        "complete": 0.8733
+      },
+      "k=3000": {
+        "recall": 0.9622,
+        "complete": 0.9467
+      },
+      "k=10000": {
+        "recall": 0.9844,
+        "complete": 0.9733
       }
     },
     "246750": {
@@ -161,6 +321,26 @@
       "k=32": {
         "recall": 0.53,
         "complete": 0.4067
+      },
+      "k=100": {
+        "recall": 0.691,
+        "complete": 0.6067
+      },
+      "k=300": {
+        "recall": 0.7824,
+        "complete": 0.7
+      },
+      "k=1000": {
+        "recall": 0.8903,
+        "complete": 0.8333
+      },
+      "k=3000": {
+        "recall": 0.9461,
+        "complete": 0.92
+      },
+      "k=10000": {
+        "recall": 0.9711,
+        "complete": 0.96
       }
     }
   }
