@@ -41,6 +41,7 @@ def to_instance(scenario, seed=0, implicit=False, events_per_session=3, noise_tu
         conflict_type="implicit" if implicit else "explicit",
         answer=q.answer,
         explanation=f"{entity}.{relation} is {q.answer}",
+        query_date=sessions[-1].timestamp if sessions else "",
     )
 
 

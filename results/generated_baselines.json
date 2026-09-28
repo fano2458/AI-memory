@@ -1,0 +1,42 @@
+{
+  "n": 15,
+  "chain_len": 4,
+  "k": 8,
+  "results": {
+    "supersede": {
+      "determ": 1.0,
+      "bm25_complete": 0.667,
+      "dense_complete": 1.0,
+      "reader_dense": 0.8,
+      "reader_gold": 0.867
+    },
+    "+revert": {
+      "determ": 1.0,
+      "bm25_complete": 0.8,
+      "dense_complete": 1.0,
+      "reader_dense": 1.0,
+      "reader_gold": 1.0
+    },
+    "+temporary": {
+      "determ": 0.467,
+      "bm25_complete": 0.667,
+      "dense_complete": 1.0,
+      "reader_dense": 0.667,
+      "reader_gold": 0.667
+    },
+    "+uncertain": {
+      "determ": 0.333,
+      "bm25_complete": 0.8,
+      "dense_complete": 1.0,
+      "reader_dense": 0.533,
+      "reader_gold": 0.467
+    },
+    "all mixed": {
+      "determ": 0.733,
+      "bm25_complete": 0.733,
+      "dense_complete": 1.0,
+      "reader_dense": 0.667,
+      "reader_gold": 0.8
+    }
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "n": 300,
+  "chain_len": 4,
+  "k": 8,
+  "results": {
+    "supersede": {
+      "determ": 1.0,
+      "bm25_complete": 0.607
+    },
+    "+revert": {
+      "determ": 1.0,
+      "bm25_complete": 0.69
+    },
+    "+temporary": {
+      "determ": 0.613,
+      "bm25_complete": 0.643
+    },
+    "+uncertain": {
+      "determ": 0.487,
+      "bm25_complete": 0.667
+    },
+    "all mixed": {
+      "determ": 0.583,
+      "bm25_complete": 0.683
+    }
+  }
+}
