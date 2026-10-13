@@ -4,31 +4,61 @@ Conflict-aware temporal memory for stateful LLM agents.
 
 ## Setup
 
+Each memory system runs in its own environment:
+
 ```bash
-uv venv --python 3.11
-uv pip install -r requirements.txt
+uv venv envs/mem0-classic --python 3.11
+uv pip install --python envs/mem0-classic/bin/python "mem0ai==1.0.11" orjson
+uv venv envs/mem0-addonly --python 3.11
+uv pip install --python envs/mem0-addonly/bin/python "mem0ai==2.2.1" orjson fastembed spacy pip
+envs/mem0-addonly/bin/python -m spacy download en_core_web_sm
+uv venv envs/cupmem --python 3.11
+uv pip install --python envs/cupmem/bin/python -r external/stale/cup_mem/requirements.txt orjson
 ```
+
+CUPMem comes from the STALE repository: clone https://github.com/icedreamc/STALE into `external/stale` and put `all-MiniLM-L6-v2` in `external/stale/cup_mem/models/`.
+
+Endpoints, keys and model names live in `.env` (not committed): `OPENAI_API_KEY`, `GEMMA_URL`, `GEMMA_MODEL`, `QWEN_URL`, `QWEN_MODEL`, `EMBED_URL`, `JUDGE_MODEL`, `MEM0_TELEMETRY=False`.
 
 ## Data
 
-STALE (400 instances, 292 MB) is not committed. Download it into `data/external/stale/`:
+Benchmarks are not committed. Download into `data/external/`:
 
 ```bash
 curl -L -o data/external/stale/T1_T2_400_FULL.json \
   https://huggingface.co/datasets/STALEproj/STALE/resolve/main/T1_T2_400_FULL.json
+curl -L -o data/external/longmemeval/longmemeval_s_cleaned.json \
+  https://huggingface.co/datasets/xiaowu0162/longmemeval-cleaned/resolve/main/longmemeval_s_cleaned.json
+curl -L -o data/external/locomo/locomo10.json \
+  https://raw.githubusercontent.com/snap-research/locomo/main/data/locomo10.json
 ```
 
-## Run
+## Running
+
+Run from the repository root, in the system's environment:
 
 ```bash
-python scripts/eval_retrieval.py --per-type 60
+envs/mem0-classic/bin/python scripts/run.py mem0 locomo
+envs/mem0-addonly/bin/python scripts/run.py mem0 stale
+envs/cupmem/bin/python scripts/run.py cupmem stale
+envs/mem0-classic/bin/python scripts/run.py fullcontext locomo --prompt benchmark
+envs/mem0-classic/bin/python scripts/judge.py runs/stale/mem0-addonly
+envs/mem0-classic/bin/python scripts/diagnose.py runs/locomo/mem0-classic
 ```
+
+Results go to `runs/<benchmark>/<system>/<conversation or user>/`.
 
 ## Layout
 
 | Path | Contents |
 |---|---|
-| `src/aimem/schema.py` | Shared records: `Instance`, `Session`, `Query`, `Result`, `Cost` |
-| `src/aimem/stale.py` | STALE adapter — normalises the benchmark JSON |
-| `src/aimem/retrieval.py` | Retrieval baselines: oracle, BM25 |
-| `scripts/eval_retrieval.py` | Session-level CSR@k / ACH@k, no LLM needed |
+| `src/aimem/data.py` | records (`Conversation`, `Session`, `Turn`, `Question`), loaders for LoCoMo, LongMemEval and STALE, the fixed STALE sample |
+| `src/aimem/prompts.py` | answer and judge prompts |
+| `src/aimem/answer.py` | answer step for retrieval-based systems |
+| `src/aimem/mem0.py`, `cupmem.py`, `fullcontext.py` | memory systems |
+| `src/aimem/llm.py` | `.env` loading and a cached LLM client |
+| `scripts/run.py` | runs a system on a benchmark |
+| `scripts/judge.py` | judges answers |
+| `scripts/diagnose.py` | splits LoCoMo errors into storage, retrieval, memory and answering failures |
+
+The first exploratory phase (retrieval experiments, scaling, synthetic generator) is preserved at git tag `exploration`.

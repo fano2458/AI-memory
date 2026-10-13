@@ -1,9 +1,2 @@
-numpy
 orjson
-requests
-rank-bm25
-tqdm
-pyyaml
-pytest
 openai
-tiktoken
