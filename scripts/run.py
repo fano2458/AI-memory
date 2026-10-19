@@ -1,5 +1,8 @@
+import os
 import sys
 import json
+import time
+import threading
 import shutil
 import argparse
 import importlib
@@ -15,9 +18,17 @@ load_env()
 from aimem.data import load_locomo, stale_sample
 from aimem.answer import answer_all
 
-SYSTEMS = {"mem0": "aimem.mem0", "cupmem": "aimem.cupmem", "fullcontext": "aimem.fullcontext"}
+SYSTEMS = {"mem0": "aimem.mem0", "graphiti": "aimem.graphiti", "cupmem": "aimem.cupmem", "fullcontext": "aimem.fullcontext"}
 BENCHMARKS = {"locomo": load_locomo, "stale": stale_sample}
 RUNS = Path(__file__).resolve().parents[1] / "runs"
+
+
+def exit_with_parent(parent):
+    def watch():
+        while os.getppid() == parent:
+            time.sleep(5)
+        os._exit(1)
+    threading.Thread(target=watch, daemon=True).start()
 
 
 def run(module, conversation, run_dir, answers, prompt):
@@ -49,7 +60,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("system", choices=SYSTEMS)
     parser.add_argument("benchmark", choices=BENCHMARKS)
-    parser.add_argument("--prompt", choices=["paper", "benchmark"], help="LoCoMo answer prompt; default: the system's own")
+    parser.add_argument("--prompt", choices=["paper", "benchmark", "zep"], help="LoCoMo answer prompt; default: the system's own")
     parser.add_argument("--workers", type=int, default=16)
     args = parser.parse_args()
 
@@ -58,7 +69,7 @@ if __name__ == "__main__":
     answers = "answers.jsonl" if prompt == system.PROMPT else f"answers-{prompt}.jsonl"
     root = RUNS / args.benchmark / system.NAME
 
-    with ProcessPoolExecutor(args.workers) as pool:
+    with ProcessPoolExecutor(args.workers, initializer=exit_with_parent, initargs=(os.getpid(),)) as pool:
         futures = {
             pool.submit(run, SYSTEMS[args.system], c, root / c.conversation_id, answers, prompt): c.conversation_id
             for c in BENCHMARKS[args.benchmark]()

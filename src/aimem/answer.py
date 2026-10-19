@@ -9,6 +9,7 @@ from openai import OpenAI
 from aimem.prompts import (
     PAPER_ANSWER_PROMPT, BENCHMARK_ANSWER_PROMPT,
     STALE_QUESTION_SYSTEM, STALE_QUESTION_USER, STALE_TASK_SYSTEM, STALE_TASK_USER,
+    ZEP_ANSWER_PROMPT, ZEP_CONTEXT_TEMPLATE,
 )
 
 KS = [10, 20, 50, 200]
@@ -53,6 +54,12 @@ def benchmark_prompt(conversation, q, found, k):
     return BENCHMARK_ANSWER_PROMPT.format(memories="\n".join(lines).rstrip(), question=q.text, reference_date=reference)
 
 
+def zep_context(found, k):
+    facts = [f"  - {fact} ({span})" for _, fact, span in found["facts"][:k]]
+    entities = [f"  - {name}: {summary}" for _, name, summary in found["entities"][:k]]
+    return ZEP_CONTEXT_TEMPLATE.format(facts="\n".join(facts), entities="\n".join(entities))
+
+
 def locomo_row(q, k, output, memory_ids, usage, prompt):
     return {
         "question_id": q.question_id,
@@ -83,7 +90,9 @@ def stale_row(conversation, q, k, answer, memory_ids, usage):
 
 
 def answer_locomo(conversation, q, found, k, prompt):
-    if prompt == "benchmark":
+    if prompt == "zep":
+        messages = [{"role": "system", "content": ZEP_ANSWER_PROMPT.format(memories=zep_context(found, k), question=q.text)}]
+    elif prompt == "benchmark":
         messages = [{"role": "user", "content": benchmark_prompt(conversation, q, found, k)}]
     else:
         messages = [{"role": "system", "content": paper_prompt(conversation, q, found, k)}]
@@ -92,8 +101,12 @@ def answer_locomo(conversation, q, found, k, prompt):
 
 
 def answer_stale(conversation, q, found, k, prompt):
-    memories = sorted((m for ms in found.values() for m in ms[:k]), key=lambda m: day(m[1]))
-    history = "\n".join(f"({date}) {text}" for _, date, text in memories)
+    if "facts" in found:
+        memories = found["facts"][:k] + found["entities"][:k]
+        history = zep_context(found, k)
+    else:
+        memories = sorted((m for ms in found.values() for m in ms[:k]), key=lambda m: day(m[1]))
+        history = "\n".join(f"({date}) {text}" for _, date, text in memories)
     system, user = (STALE_TASK_SYSTEM, STALE_TASK_USER) if q.category == "dim3" else (STALE_QUESTION_SYSTEM, STALE_QUESTION_USER)
     messages = [{"role": "system", "content": system}, {"role": "user", "content": user.format(history=history, query=q.text)}]
     output, usage = generate(messages, 2048)

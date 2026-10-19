@@ -273,3 +273,60 @@ Target Model Response 2: {dim2_a}
 Question 3: {dim3_q}
 Target Model Response 3: {dim3_a}
 """
+
+# ZEP_* from mem0ai/mem0 evaluation (Apache-2.0); placeholders changed to {x}.
+
+ZEP_ANSWER_PROMPT = """
+    You are an intelligent memory assistant tasked with retrieving accurate information from conversation memories.
+
+    # CONTEXT:
+    You have access to memories from a conversation. These memories contain
+    timestamped information that may be relevant to answering the question.
+
+    # INSTRUCTIONS:
+    1. Carefully analyze all provided memories
+    2. Pay special attention to the timestamps to determine the answer
+    3. If the question asks about a specific event or fact, look for direct evidence in the memories
+    4. If the memories contain contradictory information, prioritize the most recent memory
+    5. If there is a question about time references (like "last year", "two months ago", etc.), 
+       calculate the actual date based on the memory timestamp. For example, if a memory from 
+       4 May 2022 mentions "went to India last year," then the trip occurred in 2021.
+    6. Always convert relative time references to specific dates, months, or years. For example, 
+       convert "last year" to "2022" or "two months ago" to "March 2023" based on the memory 
+       timestamp. Ignore the reference while answering the question.
+    7. Focus only on the content of the memories. Do not confuse character 
+       names mentioned in memories with the actual users who created those memories.
+    8. The answer should be less than 5-6 words.
+
+    # APPROACH (Think step by step):
+    1. First, examine all memories that contain information related to the question
+    2. Examine the timestamps and content of these memories carefully
+    3. Look for explicit mentions of dates, times, locations, or events that answer the question
+    4. If the answer requires calculation (e.g., converting relative time references), show your work
+    5. Formulate a precise, concise answer based solely on the evidence in the memories
+    6. Double-check that your answer directly addresses the question asked
+    7. Ensure your final answer is specific and avoids vague time references
+
+    Memories:
+
+    {memories}
+
+    Question: {question}
+    Answer:
+    """
+
+ZEP_CONTEXT_TEMPLATE = """
+FACTS and ENTITIES represent relevant context to the current conversation.
+
+# These are the most relevant facts and their valid date ranges
+# format: FACT (Date range: from - to)
+
+{facts}
+
+
+# These are the most relevant entities
+# ENTITY_NAME: entity summary
+
+{entities}
+
+"""
