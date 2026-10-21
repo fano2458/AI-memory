@@ -21,7 +21,7 @@ gemma = None
 def generate(messages, max_tokens, json_mode=False):
     global gemma
     if gemma is None:
-        gemma = OpenAI(base_url=os.environ["GEMMA_URL"], api_key="empty")
+        gemma = OpenAI(base_url=os.environ["GEMMA_URL"], api_key="empty", timeout=180)
     start = time.time()
     extra = {"response_format": {"type": "json_object"}} if json_mode else {}
     response = gemma.chat.completions.create(model=os.environ["GEMMA_MODEL"], messages=messages, temperature=0, max_tokens=max_tokens, **extra)
@@ -71,15 +71,21 @@ def decide(q, memories):
         return {}
     valid = lambda p: (isinstance(p, dict) and all(isinstance(p.get(f), int) and 0 <= p[f] < len(memories) for f in ("id", "replaced_by"))
                        and p["id"] < p["replaced_by"])
-    return {memories[p["id"]][0]: memories[p["replaced_by"]][1] for p in pairs if valid(p)}
+    return {memories[p["id"]][0]: f"OUTDATED since {memories[p['replaced_by']][1]}" for p in pairs if valid(p)}
+
+
+def tag(entry):
+    if entry.get("label") == "affected":
+        return f'POSSIBLY OUTDATED since {entry["retired_since"]}, because: "{entry["because"]}"'
+    return f"OUTDATED since {entry['retired_since']}"
 
 
 def mark(memories, outdated):
-    return [(i, date, f"[OUTDATED since {outdated[i]}] {text}" if i in outdated else text) for i, date, text in memories]
+    return [(i, date, f"[{outdated[i]}] {text}" if i in outdated else text) for i, date, text in memories]
 
 
 def outdated_for(q, memories, prompt, retired):
-    stored = {m[0]: retired[m[0]]["retired_since"] for m in memories if m[0] in retired}
+    stored = {m[0]: tag(retired[m[0]]) for m in memories if m[0] in retired}
     if prompt == "decide":
         return decide(q, memories)
     if prompt == "status":

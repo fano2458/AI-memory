@@ -350,20 +350,12 @@ Return JSON: {{"outdated": [{{"id": <number>, "replaced_by": <number>}}]}}, or {
 
 # Ours: ladder rung 3, statuses decided at write time (scripts/replay.py).
 
-KEY_PROMPT = """Give each memory below a short key naming what it says about someone, written as "subject | aspect". An aspect is one property of the subject that has a value at any given time, for example "Sam | job", "Sam | pets" or "Sam | daily schedule"; avoid broad themes such as "interests" or "routine". Memories about the same aspect of the same subject must get the same key, so reuse an existing key whenever one fits and make a new key only for a new aspect.
-
-If a memory only records what was discussed, asked, offered or recommended in a conversation (for example "User was recommended ..." or "User asked about ..."), and states no fact about the person, give it the key null.
-
-Existing keys:
-{keys}
-
-Memories:
-{memories}
-
-Return JSON: {{"keys": {{"0": "<key or null>", "1": "<key or null>"}}}} with an entry for every memory number."""
-
-REPLACE_PROMPT = """Each new memory below is shown with older memories that have the same key. For each older memory, decide whether the new memory replaces it, meaning the older memory is no longer true, or whether both are still true because the new one repeats it, adds to it, or describes another part of it. Only a new value of the same property replaces an older one (a new job replaces the old job). A different trip, purchase, gift, event, person or item of the same kind does not replace an earlier one; both stay true.
+REPLACE_PROMPT = """Each new memory below is shown with older memories that may be about the same thing. For each older memory, choose one label:
+- "same": the new memory says the same thing again, perhaps with more or different detail.
+- "replaced": the older memory is no longer true because the new one gives a new value for the same thing (a new job replaces the old job).
+- "affected": the new memory is about something else, but it makes the older memory probably no longer true (a new job in another city makes "plays in the local football league every Sunday" doubtful).
+- "both": both are true, because the new memory adds something alongside the older one, or is a different trip, purchase, gift, event, person or item of the same kind.
 
 {pairs}
 
-Return JSON: {{"replaced": [{{"old": <O number>, "new": <N number>}}]}}, or {{"replaced": []}} if nothing is replaced."""
+Return JSON: {{"decisions": [{{"old": <O number>, "new": <N number>, "label": "same" | "replaced" | "affected" | "both"}}]}} with one entry for every older memory."""
