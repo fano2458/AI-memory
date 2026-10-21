@@ -191,3 +191,13 @@ def stale_sample(per_type=50):
         group = [c for c in conversations if c.extra["type"] == kind]
         picked += random.Random(0).sample(group, per_type)
     return picked
+
+
+def stale_dev(per_type=10):
+    test = {c.conversation_id for c in stale_sample()}
+    conversations = [c for c in load_stale() if c.conversation_id not in test]
+    picked = []
+    for kind in ["T1", "T2"]:
+        group = [c for c in conversations if c.extra["type"] == kind]
+        picked += random.Random(1).sample(group, per_type)
+    return picked

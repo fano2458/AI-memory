@@ -107,7 +107,7 @@ if __name__ == "__main__":
     paths = sorted(root.glob(f"*/{name}.jsonl"))
     rows = [json.loads(line) for path in paths for line in path.read_text().splitlines()]
 
-    if root.parent.name == "stale":
+    if root.parent.name.startswith("stale"):
         conversations = {c.conversation_id: c for c in load_stale()}
         answers = defaultdict(dict)
         for row in rows:

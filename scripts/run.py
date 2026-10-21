@@ -15,11 +15,11 @@ from aimem.llm import load_env
 
 load_env()
 
-from aimem.data import load_locomo, stale_sample
-from aimem.answer import answer_all
+from aimem.data import load_locomo, stale_sample, stale_dev
+from aimem.answer import KS, answer_all
 
 SYSTEMS = {"mem0": "aimem.mem0", "graphiti": "aimem.graphiti", "cupmem": "aimem.cupmem", "fullcontext": "aimem.fullcontext"}
-BENCHMARKS = {"locomo": load_locomo, "stale": stale_sample}
+BENCHMARKS = {"locomo": load_locomo, "stale": stale_sample, "stale-dev": stale_dev}
 RUNS = Path(__file__).resolve().parents[1] / "runs"
 
 
@@ -31,7 +31,7 @@ def exit_with_parent(parent):
     threading.Thread(target=watch, daemon=True).start()
 
 
-def run(module, conversation, run_dir, answers, prompt):
+def run(module, conversation, run_dir, answers, prompt, ks):
     system = importlib.import_module(module)
     if (run_dir / answers).exists():
         return "already done"
@@ -44,7 +44,8 @@ def run(module, conversation, run_dir, answers, prompt):
             run_dir.mkdir(parents=True)
             memory = system.open_store(run_dir)
             system.ingest(memory, conversation, run_dir)
-        rows = answer_all(conversation, lambda query: system.retrieve(memory, conversation, query), prompt)
+        retired = json.loads((run_dir / "status.json").read_text()) if prompt in ("status", "combined") else {}
+        rows = answer_all(conversation, lambda query: system.retrieve(memory, conversation, query), prompt, ks, retired)
         system.close(memory)
     else:
         run_dir.mkdir(parents=True, exist_ok=True)
@@ -60,7 +61,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("system", choices=SYSTEMS)
     parser.add_argument("benchmark", choices=BENCHMARKS)
-    parser.add_argument("--prompt", choices=["paper", "benchmark", "zep"], help="LoCoMo answer prompt; default: the system's own")
+    parser.add_argument("--prompt", choices=["paper", "benchmark", "zep", "newest", "decide", "status", "combined"], help="answer prompt; default: the system's own")
+    parser.add_argument("--k", type=int, nargs="+", default=KS, help="retrieval depths to answer at")
     parser.add_argument("--workers", type=int, default=16)
     args = parser.parse_args()
 
@@ -71,7 +73,7 @@ if __name__ == "__main__":
 
     with ProcessPoolExecutor(args.workers, initializer=exit_with_parent, initargs=(os.getpid(),)) as pool:
         futures = {
-            pool.submit(run, SYSTEMS[args.system], c, root / c.conversation_id, answers, prompt): c.conversation_id
+            pool.submit(run, SYSTEMS[args.system], c, root / c.conversation_id, answers, prompt, args.k): c.conversation_id
             for c in BENCHMARKS[args.benchmark]()
         }
         for future in as_completed(futures):

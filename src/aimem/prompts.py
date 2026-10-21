@@ -330,3 +330,40 @@ FACTS and ENTITIES represent relevant context to the current conversation.
 {entities}
 
 """
+
+# Ours: ladder rung 1, added to each system's own answer prompt.
+
+NEWEST_INSTRUCTION = "Some memories may be outdated, because facts about a person change over time. When memories about the same thing disagree, the most recent one is the current state and the older ones are history. Before answering, check whether the question assumes something that a more recent memory contradicts; if it does, say so and answer from the current state."
+
+# Ours: ladder rung 2, a decision step before answering.
+
+DECIDE_PROMPT = """Below are memories about people, numbered and dated, oldest first. Facts about people change: a later memory can make an earlier one outdated, either directly (a new value for the same thing) or by implication (a later change that means an earlier statement no longer holds).
+
+List every memory that a later memory makes outdated, together with the number of that later memory. Do not list a memory only because a later one adds something alongside it or is about the same topic. Use the question only to see which memories matter; the question itself may assume something outdated.
+
+Question: {question}
+
+Memories:
+{memories}
+
+Return JSON: {{"outdated": [{{"id": <number>, "replaced_by": <number>}}]}}, or {{"outdated": []}} if nothing is outdated."""
+
+# Ours: ladder rung 3, statuses decided at write time (scripts/replay.py).
+
+KEY_PROMPT = """Give each memory below a short key naming what it says about someone, written as "subject | aspect". An aspect is one property of the subject that has a value at any given time, for example "Sam | job", "Sam | pets" or "Sam | daily schedule"; avoid broad themes such as "interests" or "routine". Memories about the same aspect of the same subject must get the same key, so reuse an existing key whenever one fits and make a new key only for a new aspect.
+
+If a memory only records what was discussed, asked, offered or recommended in a conversation (for example "User was recommended ..." or "User asked about ..."), and states no fact about the person, give it the key null.
+
+Existing keys:
+{keys}
+
+Memories:
+{memories}
+
+Return JSON: {{"keys": {{"0": "<key or null>", "1": "<key or null>"}}}} with an entry for every memory number."""
+
+REPLACE_PROMPT = """Each new memory below is shown with older memories that have the same key. For each older memory, decide whether the new memory replaces it, meaning the older memory is no longer true, or whether both are still true because the new one repeats it, adds to it, or describes another part of it. Only a new value of the same property replaces an older one (a new job replaces the old job). A different trip, purchase, gift, event, person or item of the same kind does not replace an earlier one; both stay true.
+
+{pairs}
+
+Return JSON: {{"replaced": [{{"old": <O number>, "new": <N number>}}]}}, or {{"replaced": []}} if nothing is replaced."""

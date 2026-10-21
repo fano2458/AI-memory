@@ -3,6 +3,9 @@ import re
 import sys
 import json
 from pathlib import Path
+from functools import partial
+
+from openai import OpenAI
 
 from aimem.answer import stale_row, locomo_row
 
@@ -30,7 +33,8 @@ def item(conversation, owner, queries):
 
 
 def run_engine(conversation, owner, queries, run_dir, suffix):
-    llm = LLMClient(model=os.environ["GEMMA_MODEL"], api_key="empty", base_url=os.environ["GEMMA_URL"], cache_dir=run_dir / ".cache")
+    llm = LLMClient(model=os.environ["GEMMA_MODEL"], api_key="empty", base_url=os.environ["GEMMA_URL"], cache_dir=run_dir / ".cache",
+                    openai_cls=partial(OpenAI, timeout=180))
     engine = CupMemEngine(
         llm=llm,
         embedding_model_path=str(external / "cup_mem" / "models" / "all-MiniLM-L6-v2"),

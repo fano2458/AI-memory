@@ -1,5 +1,6 @@
 import os
 import json
+import time
 import importlib.metadata
 from pathlib import Path
 
@@ -24,9 +25,30 @@ from mem0.embeddings.base import EmbeddingBase
 
 class BGEEmbedder(EmbeddingBase):
     def embed(self, text, memory_action=None):
-        response = requests.post(os.environ["EMBED_URL"], json={"text": text or " "})
-        response.raise_for_status()
-        return response.json()["vector"]
+        for attempt in range(5):
+            try:
+                response = requests.post(os.environ["EMBED_URL"], json={"text": text or " "}, timeout=60)
+                response.raise_for_status()
+                return response.json()["vector"]
+            except requests.RequestException:
+                if attempt == 4:
+                    raise
+                time.sleep(10 * (attempt + 1))
+
+
+def facts_as_objects(generate):
+    def wrapped(*args, **kwargs):
+        response = generate(*args, **kwargs)
+        try:
+            data = json.loads(response)
+        except (TypeError, ValueError):
+            return response
+        facts = data.get("memory") if isinstance(data, dict) else None
+        if isinstance(facts, list) and any(isinstance(fact, str) for fact in facts):
+            data["memory"] = [{"text": fact} if isinstance(fact, str) else fact for fact in facts]
+            return json.dumps(data)
+        return response
+    return wrapped
 
 
 def open_store(run_dir):
@@ -50,6 +72,8 @@ def open_store(run_dir):
     }
     memory = Memory.from_config(config)
     memory.embedding_model = BGEEmbedder()
+    if ADDONLY:
+        memory.llm.generate_response = facts_as_objects(memory.llm.generate_response)
     return memory
 
 
