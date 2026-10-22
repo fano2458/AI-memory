@@ -57,6 +57,7 @@ envs/mem0-classic/bin/python scripts/judge.py runs/stale/mem0-addonly
 envs/mem0-classic/bin/python scripts/diagnose.py runs/locomo/mem0-classic
 envs/mem0-classic/bin/python scripts/replay.py runs/stale/mem0-addonly
 envs/mem0-addonly/bin/python scripts/run.py mem0 stale --prompt status --k 200
+envs/mem0-addonly/bin/python scripts/run.py mem0 stale --prompt status --k 200 --retired-only
 ```
 
 Results go to `runs/<benchmark>/<system>/<conversation or user>/`.
@@ -73,6 +74,6 @@ Results go to `runs/<benchmark>/<system>/<conversation or user>/`.
 | `scripts/run.py` | runs a system on a benchmark |
 | `scripts/judge.py` | judges answers |
 | `scripts/diagnose.py` | splits LoCoMo errors into storage, retrieval, memory and answering failures |
-| `scripts/replay.py` | replays add-only's stored memories in write order and marks replaced ones as retired (`status.json`) |
+| `scripts/replay.py` | replays add-only's stored memories in write order and marks replaced ones as retired and affected ones as doubtful (`status.json`) |
 
 The first exploratory phase (retrieval experiments, scaling, synthetic generator) is preserved at git tag `exploration`.

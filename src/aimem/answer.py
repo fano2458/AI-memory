@@ -21,7 +21,7 @@ gemma = None
 def generate(messages, max_tokens, json_mode=False):
     global gemma
     if gemma is None:
-        gemma = OpenAI(base_url=os.environ["GEMMA_URL"], api_key="empty", timeout=180)
+        gemma = OpenAI(base_url=os.environ["GEMMA_URL"], api_key="empty", timeout=600)
     start = time.time()
     extra = {"response_format": {"type": "json_object"}} if json_mode else {}
     response = gemma.chat.completions.create(model=os.environ["GEMMA_MODEL"], messages=messages, temperature=0, max_tokens=max_tokens, **extra)
