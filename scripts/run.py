@@ -44,7 +44,7 @@ def run(module, conversation, run_dir, answers, prompt, ks, retired_only):
             run_dir.mkdir(parents=True)
             memory = system.open_store(run_dir)
             system.ingest(memory, conversation, run_dir)
-        retired = json.loads((run_dir / "status.json").read_text()) if prompt in ("status", "combined") else {}
+        retired = json.loads((run_dir / "status.json").read_text()) if prompt in ("status", "combined", "check", "premise") else {}
         if retired_only:
             retired = {i: entry for i, entry in retired.items() if entry.get("label", "replaced") == "replaced"}
         rows = answer_all(conversation, lambda query: system.retrieve(memory, conversation, query), prompt, ks, retired)
@@ -63,9 +63,10 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("system", choices=SYSTEMS)
     parser.add_argument("benchmark", choices=BENCHMARKS)
-    parser.add_argument("--prompt", choices=["paper", "benchmark", "zep", "newest", "decide", "status", "combined"], help="answer prompt; default: the system's own")
+    parser.add_argument("--prompt", choices=["paper", "benchmark", "zep", "newest", "decide", "status", "combined", "check", "premise"], help="answer prompt; default: the system's own")
     parser.add_argument("--k", type=int, nargs="+", default=KS, help="retrieval depths to answer at")
     parser.add_argument("--retired-only", action="store_true", help="with status/combined: mark only retired memories, not doubtful ones")
+    parser.add_argument("--ids", nargs="+", help="only these conversations or users")
     parser.add_argument("--workers", type=int, default=16)
     args = parser.parse_args()
 
@@ -78,6 +79,7 @@ if __name__ == "__main__":
         futures = {
             pool.submit(run, SYSTEMS[args.system], c, root / c.conversation_id, answers, prompt, args.k, args.retired_only): c.conversation_id
             for c in BENCHMARKS[args.benchmark]()
+            if not args.ids or c.conversation_id in args.ids
         }
         failed = 0
         for future in as_completed(futures):

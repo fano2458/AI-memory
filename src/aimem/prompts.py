@@ -348,6 +348,29 @@ Memories:
 
 Return JSON: {{"outdated": [{{"id": <number>, "replaced_by": <number>}}]}}, or {{"outdated": []}} if nothing is outdated."""
 
+# Ours: ladder rung 5, a check before answering with the write-time rules and the question's premise.
+
+CHECK_PROMPT = """Below are memories about people, numbered and dated, oldest first, and a question. Do two things.
+
+1. Find memories that a later memory makes no longer true, and label each one:
+- "replaced": a later memory gives a new value for the same thing (a new job replaces the old job).
+- "affected": a later memory is about something else, but it makes this one probably no longer true (a new job in another city makes "plays in the local football league every Sunday" doubtful).
+Only states can become outdated: where someone lives or works, what they have, prefer, plan, can do or usually do. Never list:
+- a past event or action: it stays true that it happened, even if something similar happened later (a trip, a party, a race, a purchase);
+- a memory that a later one only adds to: collections and lists grow (another item, friend, hobby or place);
+- a memory that is only about the same topic.
+
+2. Check the question's premise: what does it take for granted about the people? If a later memory shows that this is no longer true, give the assumption and the number of that memory; otherwise give null.
+
+Question: {question}
+
+Memories:
+{memories}
+
+Return JSON: {{"outdated": [{{"id": <number>, "replaced_by": <number>, "label": "replaced" | "affected"}}], "premise": null or {{"assumption": "<what the question takes for granted>", "contradicted_by": <number>}}}}"""
+
+PREMISE_NOTE = 'Note: the question assumes "{assumption}", but a later memory ({date}) says: "{text}". Point this out and answer from the current state.'
+
 # Ours: ladder rung 3, statuses decided at write time (scripts/replay.py).
 
 REPLACE_PROMPT = """Each new memory below is shown with older memories that may be about the same thing. For each older memory, choose one label:

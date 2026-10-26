@@ -58,6 +58,8 @@ envs/mem0-classic/bin/python scripts/diagnose.py runs/locomo/mem0-classic
 envs/mem0-classic/bin/python scripts/replay.py runs/stale/mem0-addonly
 envs/mem0-addonly/bin/python scripts/run.py mem0 stale --prompt status --k 200
 envs/mem0-addonly/bin/python scripts/run.py mem0 stale --prompt status --k 200 --retired-only
+envs/mem0-addonly/bin/python scripts/run.py mem0 stale --prompt premise --k 200
+envs/mem0-addonly/bin/python scripts/run.py mem0 locomo --prompt premise --k 200 --ids conv-26 conv-30
 ```
 
 Results go to `runs/<benchmark>/<system>/<conversation or user>/`.

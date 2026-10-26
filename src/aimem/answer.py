@@ -9,11 +9,12 @@ from openai import OpenAI
 from aimem.prompts import (
     PAPER_ANSWER_PROMPT, BENCHMARK_ANSWER_PROMPT,
     STALE_QUESTION_SYSTEM, STALE_QUESTION_USER, STALE_TASK_SYSTEM, STALE_TASK_USER,
-    ZEP_ANSWER_PROMPT, ZEP_CONTEXT_TEMPLATE, NEWEST_INSTRUCTION, DECIDE_PROMPT,
+    ZEP_ANSWER_PROMPT, ZEP_CONTEXT_TEMPLATE, NEWEST_INSTRUCTION, DECIDE_PROMPT, CHECK_PROMPT, PREMISE_NOTE,
 )
 
 KS = [10, 20, 50, 200]
-LADDER = ("newest", "decide", "status", "combined")
+LADDER = ("newest", "decide", "status", "combined", "check", "premise")
+MARKED = ("decide", "status", "combined", "check", "premise")
 PAPER_ONE_LIST_PROMPT = PAPER_ANSWER_PROMPT.replace("\n\n    Memories for user {speaker_2_user_id}:\n\n    {speaker_2_memories}", "")
 gemma = None
 
@@ -74,6 +75,29 @@ def decide(q, memories):
     return {memories[p["id"]][0]: f"OUTDATED since {memories[p['replaced_by']][1]}" for p in pairs if valid(p)}
 
 
+def check(q, memories):
+    lines = "\n".join(f"[{i}] ({date}) {text}" for i, (_, date, text) in enumerate(memories))
+    output, _ = generate([{"role": "user", "content": CHECK_PROMPT.format(question=q.text, memories=lines)}], 4096, json_mode=True)
+    try:
+        result = json.loads(output)
+    except json.JSONDecodeError:
+        return {}, None
+    if not isinstance(result, dict):
+        return {}, None
+    index = lambda value: value if isinstance(value, int) and 0 <= value < len(memories) else None
+    outdated = {}
+    for pair in result.get("outdated") or []:
+        if isinstance(pair, dict) and pair.get("label") in ("replaced", "affected"):
+            old, new = index(pair.get("id")), index(pair.get("replaced_by"))
+            if old is not None and new is not None and old < new:
+                outdated[memories[old][0]] = tag({"retired_since": memories[new][1], "label": pair["label"], "because": memories[new][2]})
+    premise = result.get("premise")
+    if not (isinstance(premise, dict) and premise.get("assumption") and index(premise.get("contradicted_by")) is not None):
+        return outdated, None
+    _, date, text = memories[premise["contradicted_by"]]
+    return outdated, PREMISE_NOTE.format(assumption=premise["assumption"], date=date, text=text)
+
+
 def tag(entry):
     if entry.get("label") == "affected":
         return f'POSSIBLY OUTDATED since {entry["retired_since"]}, because: "{entry["because"]}"'
@@ -87,12 +111,15 @@ def mark(memories, outdated):
 def outdated_for(q, memories, prompt, retired):
     stored = {m[0]: tag(retired[m[0]]) for m in memories if m[0] in retired}
     if prompt == "decide":
-        return decide(q, memories)
+        return decide(q, memories), None
     if prompt == "status":
-        return stored
+        return stored, None
     if prompt == "combined":
-        return {**decide(q, memories), **stored}
-    return {}
+        return {**decide(q, memories), **stored}, None
+    if prompt in ("check", "premise"):
+        checked, note = check(q, memories)
+        return ({**checked, **stored} if prompt == "check" else stored), note
+    return {}, None
 
 
 def locomo_row(q, k, output, memory_ids, usage, prompt):
@@ -130,15 +157,18 @@ def answer_locomo(conversation, q, found, k, prompt, retired):
     elif prompt == "benchmark":
         messages = [{"role": "user", "content": benchmark_prompt(conversation, q, found, k)}]
     elif prompt in LADDER:
-        outdated = outdated_for(q, sorted((m for ms in found.values() for m in ms[:k]), key=lambda m: day(m[1])), prompt, retired)
+        outdated, note = outdated_for(q, sorted((m for ms in found.values() for m in ms[:k]), key=lambda m: day(m[1])), prompt, retired)
         found = {owner: mark(ms[:k], outdated) for owner, ms in found.items()}
-        messages = [{"role": "user", "content": f"{NEWEST_INSTRUCTION}\n\n{benchmark_prompt(conversation, q, found, k)}"}]
+        instruction = f"{NEWEST_INSTRUCTION} {note}" if note else NEWEST_INSTRUCTION
+        messages = [{"role": "user", "content": f"{instruction}\n\n{benchmark_prompt(conversation, q, found, k)}"}]
     else:
         messages = [{"role": "system", "content": paper_prompt(conversation, q, found, k)}]
     output, usage = generate(messages, 4096)
     row = locomo_row(q, k, output, [m[0] for memories in found.values() for m in memories[:k]], usage, prompt)
-    if prompt in ("decide", "status", "combined"):
+    if prompt in MARKED:
         row["outdated"] = list(outdated)
+    if prompt in ("check", "premise"):
+        row["premise"] = note
     return row
 
 
@@ -148,16 +178,20 @@ def answer_stale(conversation, q, found, k, prompt, retired):
         history = zep_context(found, k)
     else:
         memories = sorted((m for ms in found.values() for m in ms[:k]), key=lambda m: day(m[1]))
-        outdated = outdated_for(q, memories, prompt, retired)
+        outdated, note = outdated_for(q, memories, prompt, retired)
         history = "\n".join(f"({date}) {text}" for _, date, text in mark(memories, outdated))
     system, user = (STALE_TASK_SYSTEM, STALE_TASK_USER) if q.category == "dim3" else (STALE_QUESTION_SYSTEM, STALE_QUESTION_USER)
     if prompt in LADDER:
         system = f"{system} {NEWEST_INSTRUCTION}"
+    if prompt in ("check", "premise") and note:
+        system = f"{system} {note}"
     messages = [{"role": "system", "content": system}, {"role": "user", "content": user.format(history=history, query=q.text)}]
     output, usage = generate(messages, 2048)
     row = stale_row(conversation, q, k, output.strip(), [m[0] for m in memories], usage)
-    if prompt in ("decide", "status", "combined"):
+    if prompt in MARKED:
         row["outdated"] = list(outdated)
+    if prompt in ("check", "premise"):
+        row["premise"] = note
     return row
 
 
