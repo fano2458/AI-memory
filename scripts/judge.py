@@ -12,11 +12,15 @@ from aimem.llm import LLM, load_env
 from aimem.data import ABSTAIN, load_stale
 from aimem.prompts import (
     PAPER_JUDGE_PROMPT, STRICT_JUDGE_PROMPT, ADVERSARIAL_JUDGE_PROMPT, STALE_JUDGE_SYSTEM, STALE_JUDGE_USER,
+    memconflict_prompts,
 )
 
 load_env()
 llm = LLM(os.environ["JUDGE_MODEL"], max_tokens=4096)
 DIMS = ["dim1", "dim2", "dim3"]
+TYPES = ["dynamic", "static", "conditional"]
+FLAG = {"dynamic": "update_awareness_and_order_consistency_score", "static": "conflict_recognition_score"}
+RANK = {"dynamic": "updated_evidence_first_support_rank", "static": "truth_evidence_first_support_rank", "conditional": "correct_condition_evidence_first_support_rank"}
 
 
 def label(prompt):
@@ -57,6 +61,43 @@ def judge_stale(job):
     except (AttributeError, KeyError, TypeError, ValueError):
         passes = None
     return {"uid": conversation.conversation_id, "type": conversation.extra["type"], "k": k, "pass": passes, "judge": text}
+
+
+def judge_memconflict(row):
+    kind = row["category"]
+    _, system, prompts = memconflict_prompts()
+    text = llm.ask(system, prompts[kind].format(
+        question=row["question"], gold_answer=row["gold"], model_answer=row["answer"],
+        memories="\n".join(row["top_memories"]) or "No retrieved memories."))["text"]
+    try:
+        result = json.loads(re.search(r"\{.*\}", text, re.S).group(0))
+        row["accuracy"] = float(result[f"{kind}_answer_accuracy"])
+        row["flag"] = int(result[FLAG[kind]]) if kind in FLAG else None
+        row["support_rank"] = int(result[RANK[kind]])
+    except (AttributeError, KeyError, TypeError, ValueError):
+        row["accuracy"] = None
+    row["judge"] = text
+    return row
+
+
+def report_memconflict(rows):
+    for k in sorted({r["k"] for r in rows}):
+        group = [r for r in rows if r["k"] == k and r["accuracy"] is not None]
+        line, scores = f"k={k:<4} questions={len(group):4d}", []
+        for kind in TYPES:
+            typed = [r for r in group if r["category"] == kind]
+            if not typed:
+                continue
+            scores.append(100 * sum(r["accuracy"] for r in typed) / len(typed))
+            line += f"  {kind} {scores[-1]:5.1f}"
+            if kind in FLAG:
+                line += f" (flag {100 * sum(r['flag'] for r in typed) / len(typed):5.1f})"
+        overall = 100 * sum(r["accuracy"] for r in group) / len(group)
+        hit = 100 * sum(r["support_rank"] > 0 for r in group) / len(group)
+        print(f"{line}  mean of types {sum(scores) / len(scores):5.1f}  all {overall:5.1f}  top-3 hit {hit:5.1f}")
+    unparsed = sum(r["accuracy"] is None for r in rows)
+    if unparsed:
+        print("unparsed:", unparsed)
 
 
 def report_locomo(rows):
@@ -114,6 +155,9 @@ if __name__ == "__main__":
             answers[row["uid"], row["k"]][row["dim"]] = row["answer"]
         jobs = [(conversations[uid], k, dims) for (uid, k), dims in answers.items()]
         judge, report = judge_stale, report_stale
+    elif root.parent.name == "memconflict":
+        jobs = rows
+        judge, report = judge_memconflict, report_memconflict
     else:
         jobs = rows
         judge, report = judge_locomo, report_locomo

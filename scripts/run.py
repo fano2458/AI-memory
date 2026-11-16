@@ -15,11 +15,11 @@ from aimem.llm import load_env
 
 load_env()
 
-from aimem.data import load_locomo, stale_sample, stale_dev
+from aimem.data import load_locomo, stale_sample, stale_dev, load_memconflict
 from aimem.answer import KS, answer_all
 
 SYSTEMS = {"mem0": "aimem.mem0", "graphiti": "aimem.graphiti", "cupmem": "aimem.cupmem", "fullcontext": "aimem.fullcontext"}
-BENCHMARKS = {"locomo": load_locomo, "stale": stale_sample, "stale-dev": stale_dev}
+BENCHMARKS = {"locomo": load_locomo, "stale": stale_sample, "stale-dev": stale_dev, "memconflict": load_memconflict}
 RUNS = Path(__file__).resolve().parents[1] / "runs"
 
 
@@ -31,7 +31,7 @@ def exit_with_parent(parent):
     threading.Thread(target=watch, daemon=True).start()
 
 
-def run(module, conversation, run_dir, answers, prompt, ks, retired_only):
+def run(module, conversation, run_dir, answers, prompt, ks, retired_only, threads):
     system = importlib.import_module(module)
     if (run_dir / answers).exists():
         return "already done"
@@ -47,7 +47,7 @@ def run(module, conversation, run_dir, answers, prompt, ks, retired_only):
         retired = json.loads((run_dir / "status.json").read_text()) if prompt in ("status", "combined", "check", "premise") else {}
         if retired_only:
             retired = {i: entry for i, entry in retired.items() if entry.get("label", "replaced") == "replaced"}
-        rows = answer_all(conversation, lambda query: system.retrieve(memory, conversation, query), prompt, ks, retired)
+        rows = answer_all(conversation, lambda *query: system.retrieve(memory, conversation, *query), prompt, ks, retired, threads)
         system.close(memory)
     else:
         run_dir.mkdir(parents=True, exist_ok=True)
@@ -67,7 +67,8 @@ if __name__ == "__main__":
     parser.add_argument("--k", type=int, nargs="+", default=KS, help="retrieval depths to answer at")
     parser.add_argument("--retired-only", action="store_true", help="with status/combined: mark only retired memories, not doubtful ones")
     parser.add_argument("--ids", nargs="+", help="only these conversations or users")
-    parser.add_argument("--workers", type=int, default=16)
+    parser.add_argument("--workers", type=int, default=8, help="conversations in parallel; one LLM request at a time each while ingesting")
+    parser.add_argument("--threads", type=int, default=2, help="answers in parallel per conversation; at most workers x threads requests")
     args = parser.parse_args()
 
     system = importlib.import_module(SYSTEMS[args.system])
@@ -77,7 +78,7 @@ if __name__ == "__main__":
 
     with ProcessPoolExecutor(args.workers, initializer=exit_with_parent, initargs=(os.getpid(),)) as pool:
         futures = {
-            pool.submit(run, SYSTEMS[args.system], c, root / c.conversation_id, answers, prompt, args.k, args.retired_only): c.conversation_id
+            pool.submit(run, SYSTEMS[args.system], c, root / c.conversation_id, answers, prompt, args.k, args.retired_only, args.threads): c.conversation_id
             for c in BENCHMARKS[args.benchmark]()
             if not args.ids or c.conversation_id in args.ids
         }

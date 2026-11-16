@@ -1,3 +1,8 @@
+import re
+import ast
+from functools import cache
+from pathlib import Path
+
 # PAPER_*, FULL_CONTEXT_* and BENCHMARK_* from mem0ai/mem0 and mem0ai/memory-benchmarks (Apache-2.0); placeholders changed to {x}.
 
 PAPER_ANSWER_PROMPT = """
@@ -330,6 +335,28 @@ FACTS and ENTITIES represent relevant context to the current conversation.
 {entities}
 
 """
+
+# MemConflict (TaoZhen1110/MemConflict, commit ec51d5d) has no licence, so its prompts are read from the local clone, not copied here:
+# the Mem0 answer prompt from Evaluation/eval_memzero.py, the per-type judge prompts from Evaluation/eval_scoring.py (top-3 white-box setting).
+
+MEMCONFLICT = Path(__file__).resolve().parents[2] / "external" / "MemConflict" / "Evaluation"
+
+MEMCONFLICT_ANSWER_USER = "Retrieved Memory Context:\n{context}\n\nQuestion:\n{question}\n\nAnswer:"
+
+
+@cache
+def memconflict_prompts():
+    answer = (MEMCONFLICT / "eval_memzero.py").read_text()
+    scoring = (MEMCONFLICT / "eval_scoring.py").read_text()
+    text = lambda source, name: re.search(rf'^{name} = """(.*?)"""', source, re.S | re.M).group(1)
+    configs = ast.literal_eval(re.search(r"^WHITE_BOX_METRIC_CONFIGS: .*? = (\{.*?\n\})", scoring, re.S | re.M).group(1))
+    judge = {}
+    for kind, template in re.findall(r'if conflict_type == "(\w+)_conflict":\s+return f"""(.*?)"""', scoring, re.S):
+        config = configs[f"{kind}_conflict"]
+        judge[kind] = (template.replace("{top_k}", "3").replace("{retrieved_text}", "{memories}")
+                       .replace("{white_box_config['support_rank_field']}", config["support_rank_field"])
+                       .replace("{white_box_config['support_description']}", config["support_description"]))
+    return text(answer, "MEMZERO_ANSWER_SYSTEM_PROMPT"), text(scoring, "LLM_JUDGE_SYSTEM_PROMPT"), judge
 
 # Ours: ladder rung 1, added to each system's own answer prompt.
 

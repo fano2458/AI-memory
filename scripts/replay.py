@@ -95,7 +95,10 @@ def replay(run_dir):
             old = by_number[o]
             if old in status and (status[old]["label"] == "replaced" or label == "affected"):
                 continue
-            status[old] = {"retired_since": date, "replaced_by": memories[n][0], "label": label, "because": memories[n][1]}
+            entry = {"retired_since": date, "replaced_by": memories[n][0], "label": label, "because": memories[n][1]}
+            if old in status:
+                entry["before"] = status[old]
+            status[old] = entry
             if label == "replaced":
                 current.remove(old)
         current += [memory_id for memory_id, _ in memories]
@@ -115,7 +118,8 @@ def run(run_dir):
 
 if __name__ == "__main__":
     root = Path(sys.argv[1])
+    workers = int(sys.argv[2]) if len(sys.argv) > 2 else 8
     dirs = sorted(d for d in root.iterdir() if (d / "provenance.json").exists())
-    with ThreadPoolExecutor(16) as pool:
+    with ThreadPoolExecutor(workers) as pool:
         for run_dir, result in zip(dirs, pool.map(run, dirs)):
             print(run_dir.name, result, flush=True)

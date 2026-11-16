@@ -10,6 +10,7 @@ from aimem.prompts import (
     PAPER_ANSWER_PROMPT, BENCHMARK_ANSWER_PROMPT,
     STALE_QUESTION_SYSTEM, STALE_QUESTION_USER, STALE_TASK_SYSTEM, STALE_TASK_USER,
     ZEP_ANSWER_PROMPT, ZEP_CONTEXT_TEMPLATE, NEWEST_INSTRUCTION, DECIDE_PROMPT, CHECK_PROMPT, PREMISE_NOTE,
+    MEMCONFLICT_ANSWER_USER, memconflict_prompts,
 )
 
 KS = [10, 20, 50, 200]
@@ -108,7 +109,18 @@ def mark(memories, outdated):
     return [(i, date, f"[{outdated[i]}] {text}" if i in outdated else text) for i, date, text in memories]
 
 
+def as_of(retired, date):
+    current = {}
+    for memory_id, entry in retired.items():
+        while entry and day(entry["retired_since"]) > date:
+            entry = entry.get("before")
+        if entry:
+            current[memory_id] = entry
+    return current
+
+
 def outdated_for(q, memories, prompt, retired):
+    retired = as_of(retired, q.date)
     stored = {m[0]: tag(retired[m[0]]) for m in memories if m[0] in retired}
     if prompt == "decide":
         return decide(q, memories), None
@@ -195,11 +207,45 @@ def answer_stale(conversation, q, found, k, prompt, retired):
     return row
 
 
-def answer_all(conversation, retrieve, prompt, ks=KS, retired=None):
-    one = answer_locomo if conversation.benchmark == "locomo" else answer_stale
+def answer_memconflict(conversation, q, found, k, prompt, retired):
+    ranked = found[None][:k]
+    memories = sorted(ranked, key=lambda m: day(m[1]))
+    outdated, note = outdated_for(q, memories, prompt, retired)
+    lines = [f"Memories for user {conversation.conversation_id}:"]
+    lines += [f"{i}. [{date}] {text}" for i, (_, date, text) in enumerate(mark(memories, outdated), 1)] or ["No relevant memories found."]
+    system, _, _ = memconflict_prompts()
+    if prompt in LADDER:
+        system = f"{system}\n\n{NEWEST_INSTRUCTION}"
+    if prompt in ("check", "premise") and note:
+        system = f"{system} {note}"
+    messages = [{"role": "system", "content": system}, {"role": "user", "content": MEMCONFLICT_ANSWER_USER.format(context="\n".join(lines), question=q.text)}]
+    output, usage = generate(messages, 2048)
+    row = {
+        "question_id": q.question_id,
+        "uid": conversation.conversation_id,
+        "category": q.category,
+        "session": q.extra["session"],
+        "difficulty": q.extra["difficulty"],
+        "k": k,
+        "question": q.text,
+        "gold": q.answer,
+        "answer": output.strip(),
+        "memory_ids": [m[0] for m in memories],
+        "top_memories": [f"{i}. [{date}] {text}" for i, (_, date, text) in enumerate(ranked[:3], 1)],
+        **usage,
+    }
+    if prompt in MARKED:
+        row["outdated"] = list(outdated)
+    if prompt in ("check", "premise"):
+        row["premise"] = note
+    return row
+
+
+def answer_all(conversation, retrieve, prompt, ks=KS, retired=None, threads=4):
+    one = {"locomo": answer_locomo, "memconflict": answer_memconflict}.get(conversation.benchmark, answer_stale)
     jobs = []
     for q in conversation.questions:
-        found = retrieve(q.text)
+        found = retrieve(q.text, q.extra["session"]) if conversation.benchmark == "memconflict" else retrieve(q.text)
         jobs += [(q, found, k) for k in ks]
-    with ThreadPoolExecutor(16) as pool:
+    with ThreadPoolExecutor(threads) as pool:
         return list(pool.map(lambda job: one(conversation, *job, prompt, retired or {}), jobs))

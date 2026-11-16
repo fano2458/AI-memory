@@ -92,7 +92,7 @@ def stores(conversation):
 
 def ingest(memory, conversation, run_dir):
     locomo = conversation.benchmark == "locomo"
-    batch = 1 if locomo and ADDONLY else 2
+    batch = 8 if conversation.benchmark == "memconflict" else 1 if locomo and ADDONLY else 2
     prefix = ADDONLY or not locomo
 
     provenance = {}
@@ -114,7 +114,7 @@ def ingest(memory, conversation, run_dir):
                         messages.append({"role": "user" if turn.speaker == owner else "assistant", "content": content})
                         file.write(f"{turn.turn_id} {turn.speaker}: {turn.text[:70]}\n")
 
-                    out = memory.add(messages, user_id=user_id, metadata={"timestamp": date})
+                    out = memory.add(messages, user_id=user_id, metadata={"timestamp": date, "session": session.index})
                     for r in out["results"]:
                         file.write(f"     {r['id'][:8]} {r['event']:6s} {r['memory']}\n")
                         if r["event"] == "UPDATE":
@@ -129,12 +129,13 @@ def ingest(memory, conversation, run_dir):
         json.dump(provenance, file, indent=2)
 
 
-def retrieve(memory, conversation, query):
+def retrieve(memory, conversation, query, session=None):
     found = {}
     owners = stores(conversation)
     for user_id, owner in owners.items():
         if ADDONLY:
-            out = memory.search(query, filters={"user_id": user_id}, top_k=MAX_K)
+            filters = {"user_id": user_id} if session is None else {"user_id": user_id, "session": {"lte": session}}
+            out = memory.search(query, filters=filters, top_k=MAX_K)
         else:
             out = memory.search(query, user_id=user_id, limit=MAX_K)
         found[owner if len(owners) > 1 else None] = [(r["id"], r["metadata"]["timestamp"], r["memory"]) for r in out["results"]]

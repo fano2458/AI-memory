@@ -184,6 +184,47 @@ def load_stale():
     return conversations
 
 
+def load_memconflict():
+    conversations = []
+    for line in (DATA / "memconflict" / "Step4_4.jsonl").read_bytes().splitlines():
+        r = orjson.loads(line)
+        sessions, questions = [], []
+        for i, s in enumerate(r["Full_Session_Chain"]):
+            session_id = f"s{s['Session_ID']}"
+            date = datetime.strptime(s["Date"], "%Y-%m-%d")
+            dialogue = s["Session_Dialogue"]
+            messages = [
+                m for key in sorted(dialogue, key=lambda key: int(key.rsplit("_", 1)[1])) for m in dialogue[key]
+                if isinstance(m, dict) and m.get("role") in ("user", "assistant") and m.get("content")
+            ]
+            turns = [Turn(f"{session_id}:t{j}", m["role"], m["content"]) for j, m in enumerate(messages)]
+            sessions.append(Session(session_id, i, date, turns))
+            questions += [
+                Question(
+                    question_id=f"{r['ID']}:{session_id}:{q['question_id']}",
+                    text=q["question"],
+                    category=q["conflict_type"].removesuffix("_conflict"),
+                    answer=q["answer"],
+                    abstention=False,
+                    date=date,
+                    evidence_turns=[],
+                    evidence_sessions=[],
+                    extra={"session": i, "difficulty": q["difficulty"]},
+                )
+                for q in s["Session_Questions"]
+            ]
+
+        conversations.append(Conversation(
+            conversation_id=r["ID"],
+            benchmark="memconflict",
+            speakers=["user", "assistant"],
+            sessions=sessions,
+            questions=questions,
+        ))
+
+    return conversations
+
+
 def stale_sample(per_type=50):
     conversations = load_stale()
     picked = []
