@@ -4,6 +4,7 @@ import sys
 import json
 import time
 from pathlib import Path
+from collections import Counter
 from concurrent.futures import ThreadPoolExecutor
 
 import numpy as np
@@ -72,7 +73,7 @@ def replaced(new, olds, texts):
         return []
     decisions = ask(REPLACE_PROMPT.format(pairs="\n\n".join(blocks))).get("decisions", [])
     allowed = {(o, n) for n in range(len(new)) for o, _ in olds[n]}
-    found = [(number(d.get("old")), number(d.get("new")), d.get("label")) for d in decisions if isinstance(d, dict) and d.get("label") in ("replaced", "affected")]
+    found = [(number(d.get("old")), number(d.get("new")), d.get("label")) for d in decisions if isinstance(d, dict) and d.get("label") in ("replaced", "affected", "conflicting")]
     return [(o, n, label) for o, n, label in found if (o, n) in allowed]
 
 
@@ -93,6 +94,9 @@ def replay(run_dir):
         by_number = {o: old for old, o in numbered.items()}
         for o, n, label in replaced(memories, olds, texts):
             old = by_number[o]
+            if label == "conflicting":
+                status.setdefault(memories[n][0], {"retired_since": date, "replaced_by": old, "label": label, "because": texts[old][1]})
+                continue
             if old in status and (status[old]["label"] == "replaced" or label == "affected"):
                 continue
             entry = {"retired_since": date, "replaced_by": memories[n][0], "label": label, "because": memories[n][1]}
@@ -103,8 +107,8 @@ def replay(run_dir):
                 current.remove(old)
         current += [memory_id for memory_id, _ in memories]
     (run_dir / "status.json").write_text(json.dumps(status, indent=2))
-    retired = sum(entry["label"] == "replaced" for entry in status.values())
-    return f"{len(texts)} memories, {retired} retired, {len(status) - retired} doubtful"
+    labels = Counter(entry["label"] for entry in status.values())
+    return f"{len(texts)} memories, {labels['replaced']} retired, {labels['affected']} doubtful, {labels['conflicting']} conflicting"
 
 
 def run(run_dir):

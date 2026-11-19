@@ -10,12 +10,14 @@ from aimem.prompts import (
     PAPER_ANSWER_PROMPT, BENCHMARK_ANSWER_PROMPT,
     STALE_QUESTION_SYSTEM, STALE_QUESTION_USER, STALE_TASK_SYSTEM, STALE_TASK_USER,
     ZEP_ANSWER_PROMPT, ZEP_CONTEXT_TEMPLATE, NEWEST_INSTRUCTION, DECIDE_PROMPT, CHECK_PROMPT, PREMISE_NOTE,
+    FIXED_INSTRUCTION, FIXED_CHECK_PROMPT, FIXED_NOTE,
     MEMCONFLICT_ANSWER_USER, memconflict_prompts,
 )
 
 KS = [10, 20, 50, 200]
-LADDER = ("newest", "decide", "status", "combined", "check", "premise")
-MARKED = ("decide", "status", "combined", "check", "premise")
+LADDER = ("newest", "decide", "status", "combined", "check", "premise", "fixed")
+MARKED = ("decide", "status", "combined", "check", "premise", "fixed")
+CHECKED = ("check", "premise", "fixed")
 PAPER_ONE_LIST_PROMPT = PAPER_ANSWER_PROMPT.replace("\n\n    Memories for user {speaker_2_user_id}:\n\n    {speaker_2_memories}", "")
 gemma = None
 
@@ -76,9 +78,13 @@ def decide(q, memories):
     return {memories[p["id"]][0]: f"OUTDATED since {memories[p['replaced_by']][1]}" for p in pairs if valid(p)}
 
 
-def check(q, memories):
+def newest(prompt):
+    return FIXED_INSTRUCTION if prompt == "fixed" else NEWEST_INSTRUCTION
+
+
+def check(q, memories, fixed=False, conflicting=()):
     lines = "\n".join(f"[{i}] ({date}) {text}" for i, (_, date, text) in enumerate(memories))
-    output, _ = generate([{"role": "user", "content": CHECK_PROMPT.format(question=q.text, memories=lines)}], 4096, json_mode=True)
+    output, _ = generate([{"role": "user", "content": (FIXED_CHECK_PROMPT if fixed else CHECK_PROMPT).format(question=q.text, memories=lines)}], 4096, json_mode=True)
     try:
         result = json.loads(output)
     except json.JSONDecodeError:
@@ -92,14 +98,20 @@ def check(q, memories):
             old, new = index(pair.get("id")), index(pair.get("replaced_by"))
             if old is not None and new is not None and old < new:
                 outdated[memories[old][0]] = tag({"retired_since": memories[new][1], "label": pair["label"], "because": memories[new][2]})
+    if fixed and result.get("fixed_fact") is True:
+        return outdated, FIXED_NOTE
     premise = result.get("premise")
     if not (isinstance(premise, dict) and premise.get("assumption") and index(premise.get("contradicted_by")) is not None):
         return outdated, None
-    _, date, text = memories[premise["contradicted_by"]]
+    memory_id, date, text = memories[premise["contradicted_by"]]
+    if memory_id in conflicting:
+        return outdated, None
     return outdated, PREMISE_NOTE.format(assumption=premise["assumption"], date=date, text=text)
 
 
 def tag(entry):
+    if entry.get("label") == "conflicting":
+        return f'CONFLICTS WITH AN EARLIER FACT: "{entry["because"]}"'
     if entry.get("label") == "affected":
         return f'POSSIBLY OUTDATED since {entry["retired_since"]}, because: "{entry["because"]}"'
     return f"OUTDATED since {entry['retired_since']}"
@@ -128,8 +140,9 @@ def outdated_for(q, memories, prompt, retired):
         return stored, None
     if prompt == "combined":
         return {**decide(q, memories), **stored}, None
-    if prompt in ("check", "premise"):
-        checked, note = check(q, memories)
+    if prompt in CHECKED:
+        conflicting = {i for i, entry in retired.items() if entry.get("label") == "conflicting"}
+        checked, note = check(q, memories, prompt == "fixed", conflicting)
         return ({**checked, **stored} if prompt == "check" else stored), note
     return {}, None
 
@@ -171,7 +184,7 @@ def answer_locomo(conversation, q, found, k, prompt, retired):
     elif prompt in LADDER:
         outdated, note = outdated_for(q, sorted((m for ms in found.values() for m in ms[:k]), key=lambda m: day(m[1])), prompt, retired)
         found = {owner: mark(ms[:k], outdated) for owner, ms in found.items()}
-        instruction = f"{NEWEST_INSTRUCTION} {note}" if note else NEWEST_INSTRUCTION
+        instruction = f"{newest(prompt)} {note}" if note else newest(prompt)
         messages = [{"role": "user", "content": f"{instruction}\n\n{benchmark_prompt(conversation, q, found, k)}"}]
     else:
         messages = [{"role": "system", "content": paper_prompt(conversation, q, found, k)}]
@@ -179,7 +192,7 @@ def answer_locomo(conversation, q, found, k, prompt, retired):
     row = locomo_row(q, k, output, [m[0] for memories in found.values() for m in memories[:k]], usage, prompt)
     if prompt in MARKED:
         row["outdated"] = list(outdated)
-    if prompt in ("check", "premise"):
+    if prompt in CHECKED:
         row["premise"] = note
     return row
 
@@ -194,15 +207,15 @@ def answer_stale(conversation, q, found, k, prompt, retired):
         history = "\n".join(f"({date}) {text}" for _, date, text in mark(memories, outdated))
     system, user = (STALE_TASK_SYSTEM, STALE_TASK_USER) if q.category == "dim3" else (STALE_QUESTION_SYSTEM, STALE_QUESTION_USER)
     if prompt in LADDER:
-        system = f"{system} {NEWEST_INSTRUCTION}"
-    if prompt in ("check", "premise") and note:
+        system = f"{system} {newest(prompt)}"
+    if prompt in CHECKED and note:
         system = f"{system} {note}"
     messages = [{"role": "system", "content": system}, {"role": "user", "content": user.format(history=history, query=q.text)}]
     output, usage = generate(messages, 2048)
     row = stale_row(conversation, q, k, output.strip(), [m[0] for m in memories], usage)
     if prompt in MARKED:
         row["outdated"] = list(outdated)
-    if prompt in ("check", "premise"):
+    if prompt in CHECKED:
         row["premise"] = note
     return row
 
@@ -215,8 +228,8 @@ def answer_memconflict(conversation, q, found, k, prompt, retired):
     lines += [f"{i}. [{date}] {text}" for i, (_, date, text) in enumerate(mark(memories, outdated), 1)] or ["No relevant memories found."]
     system, _, _ = memconflict_prompts()
     if prompt in LADDER:
-        system = f"{system}\n\n{NEWEST_INSTRUCTION}"
-    if prompt in ("check", "premise") and note:
+        system = f"{system}\n\n{newest(prompt)}"
+    if prompt in CHECKED and note:
         system = f"{system} {note}"
     messages = [{"role": "system", "content": system}, {"role": "user", "content": MEMCONFLICT_ANSWER_USER.format(context="\n".join(lines), question=q.text)}]
     output, usage = generate(messages, 2048)
@@ -236,7 +249,7 @@ def answer_memconflict(conversation, q, found, k, prompt, retired):
     }
     if prompt in MARKED:
         row["outdated"] = list(outdated)
-    if prompt in ("check", "premise"):
+    if prompt in CHECKED:
         row["premise"] = note
     return row
 

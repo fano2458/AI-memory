@@ -398,14 +398,28 @@ Return JSON: {{"outdated": [{{"id": <number>, "replaced_by": <number>, "label": 
 
 PREMISE_NOTE = 'Note: the question assumes "{assumption}", but a later memory ({date}) says: "{text}". Point this out and answer from the current state.'
 
+# Ours: ladder rung 6, rung 5 except that a fact fixed in the past is not updated by a later claim.
+
+FIXED_RULE = "This holds only for things that can change. A fact fixed in the past, such as when and where someone was born, the family they were born into or where they studied, does not change: if memories disagree about one, the later memory is a conflicting claim, not an update, so point out the inconsistency and keep the earlier value, even if it is marked as outdated."
+
+FIXED_INSTRUCTION = NEWEST_INSTRUCTION.replace("history. ", f"history. {FIXED_RULE} ")
+
+FIXED_CHECK_PROMPT = CHECK_PROMPT.replace("Do two things.", "Do three things.").replace(
+    "otherwise give null.\n",
+    "otherwise give null.\n\n3. Say whether the question asks about a fact fixed in the past, which cannot change: when or where someone was born, the family they were born into, or where they studied.\n",
+).replace('"contradicted_by": <number>}}}}', '"contradicted_by": <number>}}, "fixed_fact": true | false}}')
+
+FIXED_NOTE = "Note: the question is about a fact fixed in the past, which does not change. If the memories disagree about it, a later claim is a conflicting claim, not an update: point out the inconsistency and keep the earlier value."
+
 # Ours: ladder rung 3, statuses decided at write time (scripts/replay.py).
 
 REPLACE_PROMPT = """Each new memory below is shown with older memories that may be about the same thing. For each older memory, choose one label:
 - "same": the new memory says the same thing again, perhaps with more or different detail.
 - "replaced": the older memory is no longer true because the new one gives a new value for the same thing (a new job replaces the old job).
 - "affected": the new memory is about something else, but it makes the older memory probably no longer true (a new job in another city makes "plays in the local football league every Sunday" doubtful).
+- "conflicting": the new memory contradicts a fact fixed in the past, which cannot change (when or where someone was born, the family they were born into, where they studied): the older memory stays true and the new one is a conflicting claim.
 - "both": both are true, because the new memory adds something alongside the older one, or is a different trip, purchase, gift, event, person or item of the same kind.
 
 {pairs}
 
-Return JSON: {{"decisions": [{{"old": <O number>, "new": <N number>, "label": "same" | "replaced" | "affected" | "both"}}]}} with one entry for every older memory."""
+Return JSON: {{"decisions": [{{"old": <O number>, "new": <N number>, "label": "same" | "replaced" | "affected" | "conflicting" | "both"}}]}} with one entry for every older memory."""
